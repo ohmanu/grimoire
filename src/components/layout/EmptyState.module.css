@@ -1,0 +1,37 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 320px;
+  padding: 32px;
+  text-align: center;
+  /* Aparece pocas veces: un fundido suave es bienvenido. */
+  animation: appear 300ms var(--ease-out) both;
+}
+
+.circle {
+  margin-bottom: 12px;
+  color: var(--border-strong);
+}
+
+.title {
+  font-family: var(--font-book);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.body {
+  max-width: 320px;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(calc(6px * var(--motion)));
+  }
+}

@@ -1,0 +1,41 @@
+.app {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 20px 32px;
+  overflow-y: auto;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 12px;
+}
+
+.heading h1 {
+  font-family: var(--font-book);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.heading span {
+  color: var(--text-faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

@@ -10,4 +10,7 @@ npm install
 npm run tauri dev
 ```
 
+`npm run dev` sirve la interfaz en http://localhost:1420 con datos de ejemplo
+(`src/lib/mock.ts`), para revisarla en un navegador sin Tauri.
+
 `npm run check` ejecuta typecheck, tests de frontend y tests de Rust.

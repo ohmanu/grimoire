@@ -1,0 +1,80 @@
+/*
+ * Tokens de Grimoire. Papel cálido, tinta oscura y un único acento: el rojo
+ * vino de Lea Monde. El acento se reserva para lo activo y lo principal.
+ */
+:root {
+  color-scheme: light;
+
+  --bg: #f7f5f1;
+  --surface: #ffffff;
+  --surface-sunken: #efece6;
+  --surface-hover: #ebe7e0;
+  --border: #e3ded6;
+  --border-strong: #cfc8bd;
+
+  --text: #1d1a17;
+  --text-muted: #6f675e;
+  --text-faint: #a39a8f;
+
+  --accent: #8e1f33;
+  --accent-hover: #7a1a2c;
+  --accent-soft: #f6e6e8;
+  --accent-text: #ffffff;
+
+  --danger: #b42318;
+  --focus: #8e1f33;
+
+  --status-pendiente: #8a8178;
+  --status-leyendo: #b7791f;
+  --status-leido: #2f7d4f;
+
+  --shadow-popup: 0 1px 2px rgb(29 26 23 / 0.06), 0 12px 32px -8px rgb(29 26 23 / 0.18);
+  --backdrop: rgb(29 26 23 / 0.32);
+
+  --font-ui: "Inter Variable", system-ui, sans-serif;
+  --font-book: "Literata Variable", Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Curvas: las predeterminadas de CSS se quedan cortas. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --sidebar-width: 264px;
+  --topbar-height: 56px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg: #141210;
+    --surface: #1c1a17;
+    --surface-sunken: #110f0e;
+    --surface-hover: #26231f;
+    --border: #2c2925;
+    --border-strong: #3d3933;
+
+    --text: #ede9e3;
+    --text-muted: #a39b91;
+    --text-faint: #6c655d;
+
+    --accent: #d9667a;
+    --accent-hover: #e27d8f;
+    --accent-soft: #3a1c22;
+    --accent-text: #1a0d10;
+
+    --danger: #f07167;
+    --focus: #d9667a;
+
+    --status-pendiente: #8f877e;
+    --status-leyendo: #d9a441;
+    --status-leido: #5fb47f;
+
+    --shadow-popup: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+    --backdrop: rgb(0 0 0 / 0.5);
+  }
+}

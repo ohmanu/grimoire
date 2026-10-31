@@ -65,8 +65,14 @@ export function isApiError(value: unknown): value is ApiError {
   return typeof value === "object" && value !== null && "kind" in value && "message" in value;
 }
 
+const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   try {
+    if (!inTauri && import.meta.env.DEV) {
+      const { mockInvoke } = await import("./mock");
+      return (await mockInvoke(command, args)) as T;
+    }
     return await invoke<T>(command, args);
   } catch (err) {
     if (isApiError(err)) throw err;
