@@ -1,8 +1,8 @@
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
-use crate::error::{AppError, AppResult};
+use crate::error::{AppError, AppResult, FieldError};
 use crate::models::{Book, BookInput, Dictionary, Format, NamedCount, Status};
-use crate::normalize::fold;
+use crate::normalize::{clean, fold};
 use crate::validate::sanitize;
 
 /// Separador para listas agregadas con group_concat. `clean` elimina los
@@ -85,6 +85,14 @@ pub fn list_trash(conn: &Connection) -> AppResult<Vec<Book>> {
 pub fn create_book(conn: &mut Connection, input: BookInput) -> AppResult<Book> {
     let b = sanitize(input)?;
     let tx = conn.transaction()?;
+    let id = insert_book(&tx, &b)?;
+    tx.commit()?;
+    get_book(conn, id)
+}
+
+/// Inserta un libro ya validado dentro de una transacción abierta. Lo usa
+/// también la importación, que mete cientos de libros en una sola.
+pub(crate) fn insert_book(tx: &Transaction, b: &BookInput) -> AppResult<i64> {
     let category_id = upsert_optional(&tx, Dictionary::Categories, b.category.as_deref())?;
     let series_id = upsert_optional(&tx, Dictionary::Series, b.series.as_deref())?;
     tx.execute(
@@ -115,9 +123,8 @@ pub fn create_book(conn: &mut Connection, input: BookInput) -> AppResult<Book> {
         ],
     )?;
     let id = tx.last_insert_rowid();
-    save_relations(&tx, id, &b)?;
-    tx.commit()?;
-    get_book(conn, id)
+    save_relations(tx, id, b)?;
+    Ok(id)
 }
 
 pub fn update_book(conn: &mut Connection, id: i64, input: BookInput) -> AppResult<Book> {
@@ -250,6 +257,81 @@ pub fn list_dictionary(conn: &Connection, dict: Dictionary) -> AppResult<Vec<Nam
         .query_map([], |row| Ok(NamedCount { id: row.get(0)?, name: row.get(1)?, count: row.get(2)? }))?
         .collect::<Result<_, _>>()?;
     Ok(rows)
+}
+
+/// Diccionarios que el usuario gestiona a mano. Autores y series se cuidan
+/// solos (desaparecen cuando ningún libro los usa).
+fn managed(dict: Dictionary) -> AppResult<(&'static str, usize)> {
+    match dict {
+        Dictionary::Sigils => Ok(("sigils", crate::validate::SIGIL_MAX_CHARS)),
+        Dictionary::Categories => Ok(("categories", 80)),
+        _ => Err(AppError::Validation(vec![FieldError {
+            field: "name",
+            message: "Solo se pueden gestionar sigils y categorías".into(),
+        }])),
+    }
+}
+
+/// Renombra un sigil o una categoría. Si el nombre nuevo ya existe (sin
+/// distinguir mayúsculas ni acentos), las dos entradas se fusionan: los
+/// libros pasan a la existente y la renombrada desaparece. Devuelve el id
+/// con el que queda.
+pub fn rename_entry(conn: &mut Connection, dict: Dictionary, id: i64, name: &str) -> AppResult<i64> {
+    let (table, max) = managed(dict)?;
+    let name = clean(name);
+    let invalid = |message: String| AppError::Validation(vec![FieldError { field: "name", message }]);
+    if name.is_empty() {
+        return Err(invalid("El nombre no puede quedar vacío".into()));
+    }
+    if name.chars().count() > max {
+        return Err(invalid(format!("Máximo {max} caracteres")));
+    }
+    let norm = fold(&name);
+
+    let tx = conn.transaction()?;
+    let exists = tx.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |_| Ok(())).optional()?;
+    if exists.is_none() {
+        return Err(AppError::NotFound(if table == "sigils" { "el sigil" } else { "la categoría" }));
+    }
+    let other: Option<i64> = tx
+        .query_row(&format!("SELECT id FROM {table} WHERE name_norm = ?1 AND id != ?2"), params![norm, id], |r| {
+            r.get(0)
+        })
+        .optional()?;
+
+    let result = match (other, dict) {
+        (Some(target), Dictionary::Sigils) => {
+            tx.execute(
+                "INSERT OR IGNORE INTO book_sigils (book_id, sigil_id)
+                 SELECT book_id, ?2 FROM book_sigils WHERE sigil_id = ?1",
+                params![id, target],
+            )?;
+            tx.execute("DELETE FROM sigils WHERE id = ?1", [id])?;
+            target
+        }
+        (Some(target), _) => {
+            tx.execute("UPDATE books SET category_id = ?2 WHERE category_id = ?1", params![id, target])?;
+            tx.execute("DELETE FROM categories WHERE id = ?1", [id])?;
+            target
+        }
+        (None, _) => {
+            tx.execute(&format!("UPDATE {table} SET name = ?2, name_norm = ?3 WHERE id = ?1"), params![id, name, norm])?;
+            id
+        }
+    };
+    tx.commit()?;
+    Ok(result)
+}
+
+/// Borra un sigil (se quita de todos sus libros) o una categoría (sus libros
+/// se quedan sin categoría). Los libros no se tocan en nada más.
+pub fn delete_entry(conn: &Connection, dict: Dictionary, id: i64) -> AppResult<()> {
+    let (table, _) = managed(dict)?;
+    let changed = conn.execute(&format!("DELETE FROM {table} WHERE id = ?1"), [id])?;
+    if changed == 0 {
+        return Err(AppError::NotFound(if table == "sigils" { "el sigil" } else { "la categoría" }));
+    }
+    Ok(())
 }
 
 /// Id de la entrada con ese nombre (comparando sin mayúsculas ni acentos); si
@@ -497,6 +579,72 @@ mod tests {
         update_book(&mut conn, book.id, input).unwrap();
         assert_eq!(fts_hits(&conn, "rothfuss"), 0);
         assert_eq!(fts_hits(&conn, "persona"), 1);
+    }
+
+    fn sigil_id(conn: &Connection, name: &str) -> i64 {
+        list_dictionary(conn, Dictionary::Sigils).unwrap().into_iter().find(|s| s.name == name).unwrap().id
+    }
+
+    #[test]
+    fn rename_sigil_keeps_books() {
+        let mut conn = open_in_memory().unwrap();
+        let book = create_book(&mut conn, full_input()).unwrap();
+        let magia = sigil_id(&conn, "Magia");
+        rename_entry(&mut conn, Dictionary::Sigils, magia, "  Hechicería ").unwrap();
+        assert_eq!(get_book(&conn, book.id).unwrap().sigils, vec!["Épica", "Hechicería"]);
+    }
+
+    #[test]
+    fn renaming_to_existing_name_merges() {
+        let mut conn = open_in_memory().unwrap();
+        let a = create_book(&mut conn, full_input()).unwrap();
+        let mut other = full_input();
+        other.title = "Otro".into();
+        other.sigils = vec!["Fantasia".into()];
+        let b = create_book(&mut conn, other).unwrap();
+
+        // Renombrar "Fantasia" a "epica" choca con "Épica": se fusionan.
+        let epica = sigil_id(&conn, "Épica");
+        let fantasia = sigil_id(&conn, "Fantasia");
+        let target = rename_entry(&mut conn, Dictionary::Sigils, fantasia, "epica").unwrap();
+        assert_eq!(target, epica);
+        assert_eq!(get_book(&conn, b.id).unwrap().sigils, vec!["Épica"]);
+        // a ya tenía Épica: no se duplica.
+        assert_eq!(get_book(&conn, a.id).unwrap().sigils, vec!["Épica", "Magia"]);
+        let sigils = list_dictionary(&conn, Dictionary::Sigils).unwrap();
+        assert_eq!(sigils.iter().map(|s| (s.name.as_str(), s.count)).collect::<Vec<_>>(), vec![("Épica", 2), ("Magia", 1)]);
+    }
+
+    #[test]
+    fn merge_and_delete_categories() {
+        let mut conn = open_in_memory().unwrap();
+        let a = create_book(&mut conn, full_input()).unwrap();
+        let mut other = full_input();
+        other.title = "Otro".into();
+        other.category = Some("Fantasy".into());
+        let b = create_book(&mut conn, other).unwrap();
+        let fantasy = list_dictionary(&conn, Dictionary::Categories).unwrap().into_iter().find(|c| c.name == "Fantasy").unwrap();
+        rename_entry(&mut conn, Dictionary::Categories, fantasy.id, "fantasía").unwrap();
+        assert_eq!(get_book(&conn, b.id).unwrap().category.as_deref(), Some("Fantasía"));
+
+        let id = list_dictionary(&conn, Dictionary::Categories).unwrap()[0].id;
+        delete_entry(&conn, Dictionary::Categories, id).unwrap();
+        assert_eq!(get_book(&conn, a.id).unwrap().category, None);
+        assert_eq!(get_book(&conn, b.id).unwrap().title, "Otro", "el libro sigue ahí");
+    }
+
+    #[test]
+    fn manage_rejects_bad_input() {
+        let mut conn = open_in_memory().unwrap();
+        create_book(&mut conn, full_input()).unwrap();
+        let id = sigil_id(&conn, "Magia");
+        assert!(matches!(rename_entry(&mut conn, Dictionary::Sigils, id, "   "), Err(AppError::Validation(_))));
+        assert!(matches!(rename_entry(&mut conn, Dictionary::Sigils, id, &"x".repeat(41)), Err(AppError::Validation(_))));
+        assert!(matches!(rename_entry(&mut conn, Dictionary::Sigils, 999, "Nuevo"), Err(AppError::NotFound(_))));
+        assert!(matches!(rename_entry(&mut conn, Dictionary::Authors, 1, "X"), Err(AppError::Validation(_))));
+        assert!(matches!(delete_entry(&conn, Dictionary::Sigils, 999), Err(AppError::NotFound(_))));
+        delete_entry(&conn, Dictionary::Sigils, id).unwrap();
+        assert!(list_dictionary(&conn, Dictionary::Sigils).unwrap().iter().all(|s| s.name != "Magia"));
     }
 
     #[test]

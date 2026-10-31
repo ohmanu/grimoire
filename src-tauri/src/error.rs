@@ -19,6 +19,8 @@ pub enum AppError {
     NewerSchema { found: i64, supported: i64 },
     #[error("La base de datos está dañada: {0}")]
     Corrupt(String),
+    #[error("La biblioteca no está disponible: {0}")]
+    Unavailable(String),
     #[error("Error de base de datos: {0}")]
     Db(#[from] rusqlite::Error),
     #[error("Error de archivo: {0}")]
@@ -34,6 +36,7 @@ impl AppError {
             AppError::NotFound(_) => "not_found",
             AppError::NewerSchema { .. } => "newer_schema",
             AppError::Corrupt(_) => "corrupt",
+            AppError::Unavailable(_) => "unavailable",
             AppError::Db(_) => "db",
             AppError::Io(_) => "io",
         }

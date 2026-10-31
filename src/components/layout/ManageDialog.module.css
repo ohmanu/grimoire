@@ -1,0 +1,100 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 4px 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm {
+  gap: 8px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glyph {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+.count,
+.hint {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.edit {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  outline: 3px solid var(--accent-soft);
+  background: var(--surface);
+}
+
+.input:focus-visible {
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 0;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.edit + p {
+  flex-basis: 100%;
+  padding: 0 2px;
+}
+
+.empty {
+  padding: 24px 0;
+  color: var(--text-faint);
+  text-align: center;
+}

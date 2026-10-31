@@ -10,7 +10,19 @@ import { Topbar } from "./components/layout/Topbar";
 import { FilterBar } from "./components/search/FilterBar";
 import { Button } from "./components/ui/Button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
-import { api, isApiError, type Book, type NamedCount, type Stats } from "./lib/api";
+import { ImportReportDialog } from "./components/layout/ImportReportDialog";
+import { LibraryMenu } from "./components/layout/LibraryMenu";
+import { ManageDialog } from "./components/layout/ManageDialog";
+import {
+  api,
+  isApiError,
+  type AppInfo,
+  type Book,
+  type ExportFormat,
+  type ImportReport,
+  type NamedCount,
+  type Stats,
+} from "./lib/api";
 import {
   activeFieldFilters,
   clearFieldFilters,
@@ -26,6 +38,7 @@ import styles from "./App.module.css";
 
 /** Datos de apoyo: diccionarios, recuentos y papelera. Se recargan tras cada cambio. */
 interface Library {
+  info: AppInfo;
   stats: Stats;
   trash: Book[];
   authors: NamedCount[];
@@ -68,12 +81,19 @@ export default function App() {
   const [detail, setDetail] = useState<Book | null>(null);
   const [form, setForm] = useState<{ open: boolean; book: Book | null }>({ open: false, book: null });
   const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const [startupError, setStartupError] = useState<AppInfo | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [importReport, setImportReport] = useState<ImportReport | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const loadLibrary = useCallback(async () => {
     try {
-      const [, stats, trash, authors, categories, series, sigils, languages, publishers] = await Promise.all([
-        api.appInfo(),
+      const info = await api.appInfo();
+      if (info.startupError) {
+        setStartupError(info);
+        return;
+      }
+      const [stats, trash, authors, categories, series, sigils, languages, publishers] = await Promise.all([
         api.libraryStats(),
         api.listTrash(),
         api.listDictionary("authors"),
@@ -83,7 +103,7 @@ export default function App() {
         api.distinctValues("language"),
         api.distinctValues("publisher"),
       ]);
-      setLibrary({ stats, trash, authors, categories, series, sigils, languages, publishers });
+      setLibrary({ info, stats, trash, authors, categories, series, sigils, languages, publishers });
       // Filtros que apuntaban a algo que ya no existe se quitan solos.
       setFilters((f) =>
         pruneFilters(f, {
@@ -121,9 +141,11 @@ export default function App() {
 
   // Búsqueda. Al escribir se espera un instante; el resto de cambios es
   // inmediato. Si llega una respuesta de una búsqueda anterior, se descarta.
+  const ready = library !== null;
   const lastText = useRef(filters.text);
   useEffect(() => {
-    if (section === "trash") return;
+    // Se espera a saber que la biblioteca abrió bien antes de buscar.
+    if (section === "trash" || !ready) return;
     let stale = false;
     const typing = filters.text !== lastText.current;
     lastText.current = filters.text;
@@ -142,12 +164,12 @@ export default function App() {
       stale = true;
       clearTimeout(timer);
     };
-  }, [filters, section, revision]);
+  }, [filters, section, revision, ready]);
 
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
 
   const openNew = useCallback(() => setForm({ open: true, book: null }), []);
-  const anyDialogOpen = detail !== null || form.open || confirm !== null;
+  const anyDialogOpen = detail !== null || form.open || confirm !== null || manageOpen || importReport !== null;
 
   // Atajos globales. Sin animación: se usan a todas horas.
   useEffect(() => {
@@ -224,6 +246,26 @@ export default function App() {
     }
   };
 
+  const handleImport = async () => {
+    try {
+      const report = await api.importBooks();
+      if (!report) return;
+      await refresh();
+      setImportReport(report);
+    } catch (err) {
+      reportError(err);
+    }
+  };
+
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      const count = await api.exportBooks(format);
+      if (count != null) toast.success(t.exported(count));
+    } catch (err) {
+      reportError(err);
+    }
+  };
+
   const toggleSigil = (id: number) =>
     setFilters((f) => ({
       ...f,
@@ -286,6 +328,18 @@ export default function App() {
     );
   }
 
+  // La base de datos no se pudo abrir: se explica qué hacer, sin más interfaz.
+  if (startupError) {
+    return (
+      <div className={styles.startup}>
+        <EmptyState
+          title={t.startupTitle}
+          body={`${startupError.startupError}. ${t.startupBody(startupError.dataDir)}`}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.app}>
       <Sidebar
@@ -307,6 +361,15 @@ export default function App() {
           view={view}
           onViewChange={setView}
           onNewBook={openNew}
+          menu={
+            <LibraryMenu
+              version={library?.info.version ?? null}
+              dataDir={library?.info.dataDir ?? null}
+              onImport={handleImport}
+              onExport={handleExport}
+              onManage={() => setManageOpen(true)}
+            />
+          }
         />
         {!inTrash && library && library.stats.all > 0 && (
           <FilterBar
@@ -360,6 +423,16 @@ export default function App() {
         onClose={() => setForm((f) => ({ ...f, open: false }))}
         onSaved={handleSaved}
       />
+
+      <ManageDialog
+        open={manageOpen}
+        sigils={library?.sigils ?? []}
+        categories={library?.categories ?? []}
+        onClose={() => setManageOpen(false)}
+        onChanged={refresh}
+      />
+
+      <ImportReportDialog report={importReport} onClose={() => setImportReport(null)} />
 
       <ConfirmDialog
         open={confirm !== null}

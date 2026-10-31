@@ -1,5 +1,5 @@
 import { LayoutGrid, List, Plus, Search, X } from "lucide-react";
-import { forwardRef } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { t } from "../../lib/strings";
 import type { View } from "../books/BookList";
 import { Button } from "../ui/Button";
@@ -13,10 +13,11 @@ interface TopbarProps {
   view: View;
   onViewChange: (view: View) => void;
   onNewBook: () => void;
+  menu?: ReactNode;
 }
 
 export const Topbar = forwardRef<HTMLInputElement, TopbarProps>(function Topbar(
-  { query, onQueryChange, view, onViewChange, onNewBook },
+  { query, onQueryChange, view, onViewChange, onNewBook, menu },
   searchRef,
 ) {
   return (
@@ -76,6 +77,7 @@ export const Topbar = forwardRef<HTMLInputElement, TopbarProps>(function Topbar(
             {t.newBook}
           </Button>
         </Tooltip>
+        {menu}
       </div>
     </header>
   );

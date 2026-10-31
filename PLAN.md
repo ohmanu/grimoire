@@ -26,7 +26,8 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - [x] Fase 2
 - [x] Fase 3
 - [x] Fase 4 (5.000 libros: la búsqueda más pesada tarda 31 ms)
-- [ ] Fase 5 · [ ] Fase 6
+- [x] Fase 5
+- [ ] Fase 6
 
 ## Fases
 
@@ -81,6 +82,14 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - Gestionar sigils: renombrar y fusionar.
 - Atajos: `Ctrl+N` libro nuevo, `Ctrl+K` buscar.
 - Errores con mensaje claro, nunca cierres inesperados.
+- Hecho: menú «⋯» con importar, exportar (JSON completo o CSV para Excel) y
+  gestionar sigils y categorías (renombrar; renombrar a un nombre existente
+  fusiona; borrar). La importación acepta CSV de otras apps (cabeceras en
+  español o inglés, `,` o `;`), omite duplicados (título + primer autor) y
+  detalla fila a fila lo que no entra. Si la base de datos no abre, la app
+  arranca igual y explica cómo restaurar una copia; si la interfaz falla, se
+  ofrece recargar en vez de quedarse en blanco.
+- Pendiente para la fase 6: las copias de `backups/` no incluyen las portadas.
 
 ### Fase 6 — Empaquetado y pruebas finales
 - `.exe` portable con icono.

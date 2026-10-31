@@ -90,6 +90,17 @@ export interface AppInfo {
   version: string;
   dataDir: string;
   coversDir: string;
+  /** Motivo por el que la base de datos no se pudo abrir al arrancar. */
+  startupError: string | null;
+}
+
+export type ExportFormat = "json" | "csv";
+
+export interface ImportReport {
+  imported: number;
+  duplicates: number;
+  failed: number;
+  issues: { row: number; title: string; message: string }[];
 }
 
 export interface FieldError {
@@ -99,7 +110,7 @@ export interface FieldError {
 
 /** Error tal como lo serializa `AppError` en Rust. */
 export interface ApiError {
-  kind: "validation" | "not_found" | "newer_schema" | "corrupt" | "db" | "io" | "unknown";
+  kind: "validation" | "not_found" | "newer_schema" | "corrupt" | "unavailable" | "db" | "io" | "unknown";
   message: string;
   fields: FieldError[];
 }
@@ -122,6 +133,28 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
     const error: ApiError = { kind: "unknown", message: String(err), fields: [] };
     throw error;
   }
+}
+
+/** Diálogo nativo de abrir/guardar. Solo existe dentro de la app. */
+async function pickFile(mode: "open" | "save", format?: ExportFormat): Promise<string | null> {
+  if (!inTauri) {
+    const error: ApiError = { kind: "unknown", message: "Solo disponible en la app de escritorio", fields: [] };
+    throw error;
+  }
+  const dialog = await import("@tauri-apps/plugin-dialog");
+  if (mode === "open") {
+    const path = await dialog.open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "Libros (JSON o CSV)", extensions: ["json", "csv"] }],
+    });
+    return typeof path === "string" ? path : null;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  return dialog.save({
+    defaultPath: `grimoire-${today}.${format}`,
+    filters: [format === "csv" ? { name: "CSV", extensions: ["csv"] } : { name: "JSON", extensions: ["json"] }],
+  });
 }
 
 let coversDir: string | null = null;
@@ -157,4 +190,18 @@ export const api = {
   searchBooks: (query: SearchQuery) => call<SearchResult>("search_books", { query }),
   libraryStats: () => call<Stats>("library_stats"),
   distinctValues: (field: TextField) => call<string[]>("distinct_values", { field }),
+  renameEntry: (kind: "sigils" | "categories", id: number, name: string) =>
+    call<number>("rename_entry", { kind, id, name }),
+  deleteEntry: (kind: "sigils" | "categories", id: number) => call<void>("delete_entry", { kind, id }),
+
+  /** Pide dónde guardar y exporta. null si el usuario cancela. */
+  exportBooks: async (format: ExportFormat): Promise<number | null> => {
+    const path = await pickFile("save", format);
+    return path ? call<number>("export_books", { path, format }) : null;
+  },
+  /** Pide el archivo e importa. null si el usuario cancela. */
+  importBooks: async (): Promise<ImportReport | null> => {
+    const path = await pickFile("open");
+    return path ? call<ImportReport>("import_books", { path }) : null;
+  },
 };

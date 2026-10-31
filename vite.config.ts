@@ -27,6 +27,10 @@ export default defineConfig(() => ({
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
+      // En Windows el vigilante nativo a veces se salta ediciones muy
+      // seguidas y sirve archivos a medias; sondear es más fiable.
+      usePolling: true,
+      interval: 200,
     },
   },
 }));

@@ -1,0 +1,61 @@
+import { Popover as BasePopover } from "@base-ui/react/popover";
+import { FileJson, FileSpreadsheet, MoreHorizontal, Tags, Upload } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { t } from "../../lib/strings";
+import { Button } from "../ui/Button";
+import styles from "./LibraryMenu.module.css";
+
+interface LibraryMenuProps {
+  version: string | null;
+  dataDir: string | null;
+  onImport: () => void;
+  onExport: (format: "json" | "csv") => void;
+  onManage: () => void;
+}
+
+/** Acciones sobre toda la biblioteca. Cada opción cierra el menú al elegirla. */
+export function LibraryMenu({ version, dataDir, onImport, onExport, onManage }: LibraryMenuProps) {
+  const [open, setOpen] = useState(false);
+  const item = (icon: ReactNode, label: string, action: () => void) => (
+    <button
+      type="button"
+      className={styles.item}
+      onClick={() => {
+        setOpen(false);
+        action();
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+
+  return (
+    <BasePopover.Root open={open} onOpenChange={setOpen}>
+      <BasePopover.Trigger
+        render={<Button variant="ghost" size="icon" aria-label={t.menu} title={t.menu} icon={<MoreHorizontal />} />}
+      />
+      <BasePopover.Portal>
+        <BasePopover.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={12}>
+          <BasePopover.Popup className={styles.menu} aria-label={t.menu}>
+            {item(<Upload />, t.importBooks, onImport)}
+            {item(<FileJson />, t.exportJson, () => onExport("json"))}
+            {item(<FileSpreadsheet />, t.exportCsv, () => onExport("csv"))}
+            <hr className={styles.separator} />
+            {item(<Tags />, t.manage, onManage)}
+            <hr className={styles.separator} />
+            <div className={styles.about}>
+              <span>
+                {t.appName} {version && `v${version}`}
+                <br />
+                <span className={styles.path} title={dataDir ?? undefined}>
+                  {dataDir}
+                </span>
+              </span>
+            </div>
+          </BasePopover.Popup>
+        </BasePopover.Positioner>
+      </BasePopover.Portal>
+    </BasePopover.Root>
+  );
+}

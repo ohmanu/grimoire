@@ -161,9 +161,10 @@ function canonical(names: string[], kind: "authors" | "sigils"): string[] {
 
 // Ids estables por nombre, como en la base de datos real.
 const registry = new Map<string, number>();
+let nextRegistryId = 1;
 const idOf = (kind: string, name: string) => {
   const key = `${kind}:${fold(name)}`;
-  if (!registry.has(key)) registry.set(key, registry.size + 1);
+  if (!registry.has(key)) registry.set(key, nextRegistryId++);
   return registry.get(key)!;
 };
 
@@ -246,7 +247,37 @@ export async function mockInvoke(command: string, args: Record<string, unknown> 
   const input = args.input as BookInput;
   switch (command) {
     case "app_info":
-      return { version: "0.1.0-dev", dataDir: "(navegador · datos de ejemplo)", coversDir: "" };
+      return { version: "0.1.0-dev", dataDir: "(navegador · datos de ejemplo)", coversDir: "", startupError: null };
+    case "rename_entry": {
+      const kind = args.kind === "categories" ? "categories" : "sigils";
+      const old = [...registry].find(([key, id]) => id === args.id && key.startsWith(`${kind}:`));
+      if (!old) return fail("not_found", "No se ha encontrado");
+      const name = String(args.name).trim().replace(/\s+/g, " ");
+      if (!name) return fail("validation", "Revisa los campos marcados", [{ field: "name" as never, message: "El nombre no puede quedar vacío" }]);
+      const oldNorm = old[0].slice(kind.length + 1);
+      for (const b of books) {
+        if (kind === "sigils") {
+          const kept = b.sigils.filter((s) => fold(s) !== oldNorm);
+          if (kept.length !== b.sigils.length) b.sigils = canonical([...kept, name], "sigils");
+        } else if (b.category && fold(b.category) === oldNorm) {
+          b.category = books.map((x) => x.category).find((c) => c && fold(c) === fold(name)) ?? name;
+        }
+      }
+      registry.delete(old[0]);
+      return idOf(kind, name);
+    }
+    case "delete_entry": {
+      const kind = args.kind === "categories" ? "categories" : "sigils";
+      const old = [...registry].find(([key, id]) => id === args.id && key.startsWith(`${kind}:`));
+      if (!old) return fail("not_found", "No se ha encontrado");
+      const norm = old[0].slice(kind.length + 1);
+      for (const b of books) {
+        if (kind === "sigils") b.sigils = b.sigils.filter((s) => fold(s) !== norm);
+        else if (b.category && fold(b.category) === norm) b.category = null;
+      }
+      registry.delete(old[0]);
+      return null;
+    }
     case "list_books":
       return books.filter((b) => !b.deletedAt).sort((a, b) => fold(a.title).localeCompare(fold(b.title)));
     case "list_trash":

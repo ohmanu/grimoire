@@ -4,6 +4,13 @@
   overflow: hidden;
 }
 
+.startup {
+  height: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  user-select: text;
+}
+
 .workspace {
   display: flex;
   flex-direction: column;

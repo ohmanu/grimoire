@@ -1,0 +1,58 @@
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  user-select: text;
+}
+
+.ok {
+  font-family: var(--font-book);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.bad {
+  margin-top: 6px;
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.issues {
+  max-height: 280px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  list-style: none;
+}
+
+.issues li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
+
+.issues li + li {
+  border-top: 1px solid var(--border);
+}
+
+.row {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.message {
+  flex-basis: 100%;
+  color: var(--text-muted);
+}
