@@ -19,8 +19,8 @@ interface CoverProps {
 }
 
 /**
- * La portada del libro, entera y sin deformar, sobre el color de
- * encuadernación; o, si no tiene (o no carga), un lomo de tela con el título.
+ * La portada del libro con su propia forma, sin recortes ni bandas; o, si no
+ * tiene (o no carga), un lomo de tela con el título.
  */
 export function Cover({ book, size, src: given }: CoverProps) {
   const src = given !== undefined ? given : book.cover ? coverSrc({ cover: book.cover }) : null;
@@ -29,11 +29,12 @@ export function Cover({ book, size, src: given }: CoverProps) {
 
   if (src && failed !== src) {
     return (
-      <div className={`${styles.cover} ${styles[size]} ${styles.framed}`} style={{ backgroundColor: color }} aria-hidden>
+      <div className={`${styles[size]} ${styles.slot}`} aria-hidden>
         <img
           src={src}
           alt=""
           className={styles.image}
+          data-cover-face
           loading="lazy"
           draggable={false}
           onError={() => setFailed(src)}
@@ -43,7 +44,7 @@ export function Cover({ book, size, src: given }: CoverProps) {
   }
 
   return (
-    <div className={`${styles.cover} ${styles[size]}`} style={{ backgroundColor: color }} aria-hidden>
+    <div className={`${styles.cover} ${styles[size]}`} style={{ backgroundColor: color }} data-cover-face aria-hidden>
       {size !== "sm" && (
         <>
           <span className={styles.title}>{book.title}</span>

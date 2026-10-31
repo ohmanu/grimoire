@@ -1,10 +1,11 @@
-import { BookCheck, BookMarked, BookOpen, Bookmark, HandHelping, Library, Search, Trash2, type LucideIcon } from "lucide-react";
+import { BookCheck, BookOpen, Bookmark, HandHelping, Library, Search, Trash2, type LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { NamedCount, SigilMode, Stats } from "../../lib/api";
 import type { Section } from "../../lib/filters";
 import { t } from "../../lib/strings";
 import { fold } from "../../lib/text";
 import { MagicCircle } from "../ui/MagicCircle";
+import { SigilMark } from "../ui/SigilMark";
 import { Tooltip } from "../ui/Tooltip";
 import styles from "./Sidebar.module.css";
 
@@ -58,7 +59,7 @@ export function Sidebar(props: SidebarProps) {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <BookMarked size={18} aria-hidden />
+        <SigilMark size={22} />
         <span>{t.appName}</span>
       </div>
 

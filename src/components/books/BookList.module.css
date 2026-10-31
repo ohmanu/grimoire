@@ -138,12 +138,13 @@
   transform: scale(calc(1 - 0.02 * var(--motion)));
 }
 
-.card > :first-child {
+/* La sombra va sobre lo que se ve (la imagen o el lomo), no sobre el hueco. */
+.card [data-cover-face] {
   transition: box-shadow 150ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card:hover > :first-child {
+  .card:hover [data-cover-face] {
     box-shadow:
       inset 0 0 0 1px rgb(0 0 0 / 0.12),
       0 6px 16px -6px rgb(29 26 23 / 0.35);
