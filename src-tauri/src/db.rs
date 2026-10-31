@@ -2,8 +2,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
+use rusqlite::functions::FunctionFlags;
 
 use crate::error::{AppError, AppResult};
+use crate::normalize::fold;
 
 pub const DB_FILE: &str = "grimoire.db";
 pub const BACKUP_DIR: &str = "backups";
@@ -36,6 +38,14 @@ fn configure(conn: &Connection) -> AppResult<()> {
     conn.pragma_update(None, "synchronous", "NORMAL")?;
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.busy_timeout(std::time::Duration::from_secs(5))?;
+    // fold() en SQL: la misma normalización que en Rust, para filtrar sin
+    // distinguir mayúsculas ni acentos.
+    conn.create_scalar_function(
+        "fold",
+        1,
+        FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC,
+        |ctx| Ok(ctx.get::<Option<String>>(0)?.map(|s| fold(&s))),
+    )?;
     Ok(())
 }
 

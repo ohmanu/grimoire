@@ -102,6 +102,15 @@
   }
 }
 
+.sentinel {
+  height: 1px;
+  list-style: none;
+}
+
+.list > .sentinel {
+  border: 0;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));

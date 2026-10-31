@@ -5,27 +5,42 @@ import { BookDetail } from "./components/books/BookDetail";
 import { BookForm, type Suggestions } from "./components/books/BookForm";
 import { BookList, type View } from "./components/books/BookList";
 import { EmptyState } from "./components/layout/EmptyState";
-import { Sidebar, type Section } from "./components/layout/Sidebar";
+import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
+import { FilterBar } from "./components/search/FilterBar";
 import { Button } from "./components/ui/Button";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
-import { api, isApiError, type Book, type NamedCount } from "./lib/api";
+import { api, isApiError, type Book, type NamedCount, type Stats } from "./lib/api";
+import {
+  activeFieldFilters,
+  clearFieldFilters,
+  loadFilters,
+  pruneFilters,
+  saveFilters,
+  toQuery,
+  type Filters,
+  type Section,
+} from "./lib/filters";
 import { t } from "./lib/strings";
-import { fold } from "./lib/text";
 import styles from "./App.module.css";
 
+/** Datos de apoyo: diccionarios, recuentos y papelera. Se recargan tras cada cambio. */
 interface Library {
-  books: Book[];
+  stats: Stats;
   trash: Book[];
   authors: NamedCount[];
   categories: NamedCount[];
   series: NamedCount[];
   sigils: NamedCount[];
+  languages: string[];
+  publishers: string[];
 }
 
 type Confirm = { kind: "purge"; book: Book } | { kind: "empty" };
 
 const VIEW_KEY = "grimoire.view";
+/** Espera tras la última tecla antes de buscar. */
+const TYPING_DELAY = 150;
 
 function readView(): View {
   try {
@@ -36,16 +51,7 @@ function readView(): View {
 }
 
 const names = (list: NamedCount[]) => list.map((d) => d.name);
-
-/** Valores distintos de un campo libre, para sugerirlos. */
-function distinct(books: Book[], pick: (b: Book) => string | null): string[] {
-  const seen = new Map<string, string>();
-  for (const b of books) {
-    const v = pick(b);
-    if (v && !seen.has(fold(v))) seen.set(fold(v), v);
-  }
-  return [...seen.values()].sort((a, b) => fold(a).localeCompare(fold(b)));
-}
+const ids = (list: NamedCount[]) => list.map((d) => d.id);
 
 function reportError(err: unknown) {
   toast.error(t.actionError, { description: isApiError(err) ? err.message : String(err) });
@@ -55,34 +61,55 @@ export default function App() {
   const [library, setLibrary] = useState<Library | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [section, setSection] = useState<Section>("all");
-  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<Filters>(loadFilters);
+  const [results, setResults] = useState<{ books: Book[]; sigils: NamedCount[] } | null>(null);
+  const [revision, setRevision] = useState(0);
   const [view, setView] = useState<View>(readView);
   const [detail, setDetail] = useState<Book | null>(null);
   const [form, setForm] = useState<{ open: boolean; book: Book | null }>({ open: false, book: null });
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
+  const loadLibrary = useCallback(async () => {
     try {
-      const [, books, trash, authors, categories, series, sigils] = await Promise.all([
+      const [, stats, trash, authors, categories, series, sigils, languages, publishers] = await Promise.all([
         api.appInfo(),
-        api.listBooks(),
+        api.libraryStats(),
         api.listTrash(),
         api.listDictionary("authors"),
         api.listDictionary("categories"),
         api.listDictionary("series"),
         api.listDictionary("sigils"),
+        api.distinctValues("language"),
+        api.distinctValues("publisher"),
       ]);
-      setLibrary({ books, trash, authors, categories, series, sigils });
+      setLibrary({ stats, trash, authors, categories, series, sigils, languages, publishers });
+      // Filtros que apuntaban a algo que ya no existe se quitan solos.
+      setFilters((f) =>
+        pruneFilters(f, {
+          categories: ids(categories),
+          authors: ids(authors),
+          series: ids(series),
+          sigils: ids(sigils),
+        }),
+      );
       setError(null);
     } catch (err) {
       setError(isApiError(err) ? err.message : String(err));
     }
   }, []);
 
+  /** Tras cualquier cambio: datos de apoyo y resultados de nuevo. */
+  const refresh = useCallback(async () => {
+    setRevision((r) => r + 1);
+    await loadLibrary();
+  }, [loadLibrary]);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    loadLibrary();
+  }, [loadLibrary]);
+
+  useEffect(() => saveFilters(filters), [filters]);
 
   useEffect(() => {
     try {
@@ -91,6 +118,33 @@ export default function App() {
       // Sin almacenamiento local la vista simplemente no se recuerda.
     }
   }, [view]);
+
+  // Búsqueda. Al escribir se espera un instante; el resto de cambios es
+  // inmediato. Si llega una respuesta de una búsqueda anterior, se descarta.
+  const lastText = useRef(filters.text);
+  useEffect(() => {
+    if (section === "trash") return;
+    let stale = false;
+    const typing = filters.text !== lastText.current;
+    lastText.current = filters.text;
+    const timer = setTimeout(
+      async () => {
+        try {
+          const result = await api.searchBooks(toQuery(filters, section));
+          if (!stale) setResults(result);
+        } catch (err) {
+          if (!stale) reportError(err);
+        }
+      },
+      typing ? TYPING_DELAY : 0,
+    );
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [filters, section, revision]);
+
+  const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
 
   const openNew = useCallback(() => setForm({ open: true, book: null }), []);
   const anyDialogOpen = detail !== null || form.open || confirm !== null;
@@ -113,51 +167,22 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [anyDialogOpen, openNew]);
 
-  const suggestions = useMemo<Suggestions>(() => {
-    const all = [...(library?.books ?? []), ...(library?.trash ?? [])];
-    return {
+  const suggestions = useMemo<Suggestions>(
+    () => ({
       authors: names(library?.authors ?? []),
       categories: names(library?.categories ?? []),
       series: names(library?.series ?? []),
       sigils: names(library?.sigils ?? []),
-      languages: distinct(all, (b) => b.language),
-      publishers: distinct(all, (b) => b.publisher),
-    };
-  }, [library]);
-
-  const counts = useMemo<Record<Section, number>>(() => {
-    const books = library?.books ?? [];
-    return {
-      all: books.length,
-      pendiente: books.filter((b) => b.status === "pendiente").length,
-      leyendo: books.filter((b) => b.status === "leyendo").length,
-      leido: books.filter((b) => b.status === "leido").length,
-      lent: books.filter((b) => b.lentTo).length,
-      trash: library?.trash.length ?? 0,
-    };
-  }, [library]);
-
-  // Búsqueda sencilla por título y autor. La fase 4 la sustituye por la de
-  // texto completo con filtros y sigils.
-  const visible = useMemo(() => {
-    if (!library) return [];
-    const base =
-      section === "trash"
-        ? library.trash
-        : section === "all"
-          ? library.books
-          : section === "lent"
-            ? library.books.filter((b) => b.lentTo)
-            : library.books.filter((b) => b.status === section);
-    const q = fold(query);
-    if (!q) return base;
-    return base.filter((b) => fold([b.title, b.subtitle ?? "", ...b.authors].join(" ")).includes(q));
-  }, [library, section, query]);
+      languages: library?.languages ?? [],
+      publishers: library?.publishers ?? [],
+    }),
+    [library],
+  );
 
   const handleSaved = async (book: Book) => {
     const wasEditing = form.book !== null;
     setForm((f) => ({ ...f, open: false }));
-    await load();
+    await refresh();
     if (wasEditing) setDetail(book);
     else toast.success(`«${book.title}» ${t.added}`);
   };
@@ -166,7 +191,7 @@ export default function App() {
     try {
       await api.trashBook(book.id);
       setDetail(null);
-      await load();
+      await refresh();
       toast(t.movedToTrash(book.title), {
         // Tiempo de sobra para arrepentirse.
         duration: 8000,
@@ -180,7 +205,7 @@ export default function App() {
   const handleRestore = async (book: Book, announce = true) => {
     try {
       await api.restoreBook(book.id);
-      await load();
+      await refresh();
       if (announce) toast.success(t.restored(book.title));
     } catch (err) {
       reportError(err);
@@ -193,23 +218,32 @@ export default function App() {
       if (confirm.kind === "purge") await api.purgeBook(confirm.book.id);
       else await api.emptyTrash();
       setConfirm(null);
-      await load();
+      await refresh();
     } catch (err) {
       reportError(err);
     }
   };
 
+  const toggleSigil = (id: number) =>
+    setFilters((f) => ({
+      ...f,
+      sigilIds: f.sigilIds.includes(id) ? f.sigilIds.filter((s) => s !== id) : [...f.sigilIds, id],
+    }));
+
+  const inTrash = section === "trash";
+  const books = inTrash ? (library?.trash ?? []) : (results?.books ?? []);
+  const filtering = filters.text.trim() !== "" || filters.sigilIds.length > 0 || activeFieldFilters(filters) > 0;
   const sectionTitle =
-    section === "all" ? t.all : section === "lent" ? t.lent : section === "trash" ? t.trash : t.statusPlural[section];
+    section === "all" ? t.all : section === "lent" ? t.lent : inTrash ? t.trash : t.statusPlural[section];
 
   let content;
   if (error) {
-    content = <EmptyState title={t.loadError} body={error} action={<Button onClick={load}>{t.retry}</Button>} />;
-  } else if (!library) {
+    content = <EmptyState title={t.loadError} body={error} action={<Button onClick={loadLibrary}>{t.retry}</Button>} />;
+  } else if (!library || (!inTrash && !results)) {
     content = null;
-  } else if (section === "trash" && library.trash.length === 0) {
+  } else if (inTrash && library.trash.length === 0) {
     content = <EmptyState title={t.trashEmptyTitle} body={t.trashEmptyBody} />;
-  } else if (library.books.length === 0 && section !== "trash") {
+  } else if (!inTrash && library.stats.all === 0) {
     content = (
       <EmptyState
         title={t.emptyTitle}
@@ -221,16 +255,30 @@ export default function App() {
         }
       />
     );
-  } else if (visible.length === 0) {
-    content = <EmptyState title={t.noResultsTitle} body={t.noResultsBody} />;
+  } else if (books.length === 0) {
+    content = (
+      <EmptyState
+        title={t.noResultsTitle}
+        body={t.noResultsBody}
+        action={
+          filtering && (
+            <Button
+              onClick={() => setFilters((f) => ({ ...clearFieldFilters(f), text: "", sigilIds: [] }))}
+            >
+              {t.clearFilters}
+            </Button>
+          )
+        }
+      />
+    );
   } else {
     content = (
       <BookList
-        books={visible}
+        books={books}
         view={view}
         onOpen={setDetail}
         trash={
-          section === "trash"
+          inTrash
             ? { onRestore: (b) => handleRestore(b), onPurge: (b) => setConfirm({ kind: "purge", book: b }) }
             : undefined
         }
@@ -240,22 +288,45 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      <Sidebar section={section} onSectionChange={setSection} counts={counts} sigils={library?.sigils ?? []} />
+      <Sidebar
+        section={section}
+        onSectionChange={setSection}
+        stats={library?.stats ?? null}
+        sigils={results?.sigils ?? library?.sigils ?? []}
+        selected={filters.sigilIds}
+        mode={filters.sigilMode}
+        onToggleSigil={toggleSigil}
+        onModeChange={(sigilMode) => patchFilters({ sigilMode })}
+        onClearSigils={() => patchFilters({ sigilIds: [] })}
+      />
       <div className={styles.workspace}>
         <Topbar
           ref={searchRef}
-          query={query}
-          onQueryChange={setQuery}
+          query={filters.text}
+          onQueryChange={(text) => patchFilters({ text })}
           view={view}
           onViewChange={setView}
           onNewBook={openNew}
         />
+        {!inTrash && library && library.stats.all > 0 && (
+          <FilterBar
+            filters={filters}
+            onChange={patchFilters}
+            options={{
+              categories: library.categories,
+              authors: library.authors,
+              series: library.series,
+              publishers: library.publishers,
+              languages: library.languages,
+            }}
+          />
+        )}
         <main className={styles.content}>
           {library && !error && (
             <div className={styles.heading}>
               <h1>{sectionTitle}</h1>
-              <span>{t.bookCount(visible.length)}</span>
-              {section === "trash" && library.trash.length > 0 && (
+              <span>{t.bookCount(books.length)}</span>
+              {inTrash && library.trash.length > 0 && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -294,9 +365,7 @@ export default function App() {
         open={confirm !== null}
         title={confirm?.kind === "purge" ? t.purgeTitle : t.emptyTrashTitle}
         body={
-          confirm?.kind === "purge"
-            ? t.purgeBody(confirm.book.title)
-            : t.emptyTrashBody(library?.trash.length ?? 0)
+          confirm?.kind === "purge" ? t.purgeBody(confirm.book.title) : t.emptyTrashBody(library?.trash.length ?? 0)
         }
         confirmLabel={confirm?.kind === "purge" ? t.purge : t.emptyTrash}
         onConfirm={handleConfirm}

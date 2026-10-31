@@ -44,6 +44,48 @@ export interface NamedCount {
   count: number;
 }
 
+export type SigilMode = "all" | "any";
+export type Sort = "title" | "author" | "year" | "added" | "rating";
+
+/** Espejo de `SearchQuery` en src-tauri/src/search.rs. */
+export interface SearchQuery {
+  text: string;
+  statuses: Status[];
+  lent: boolean | null;
+  formats: Format[];
+  categoryIds: number[];
+  authorIds: number[];
+  seriesIds: number[];
+  publishers: string[];
+  languages: string[];
+  yearMin: number | null;
+  yearMax: number | null;
+  pagesMin: number | null;
+  pagesMax: number | null;
+  ratingMin: number | null;
+  location: string;
+  sigilIds: number[];
+  sigilMode: SigilMode;
+  sort: Sort;
+  descending: boolean;
+}
+
+export interface SearchResult {
+  books: Book[];
+  sigils: NamedCount[];
+}
+
+export interface Stats {
+  all: number;
+  pendiente: number;
+  leyendo: number;
+  leido: number;
+  lent: number;
+  trash: number;
+}
+
+export type TextField = "language" | "publisher";
+
 export interface AppInfo {
   version: string;
   dataDir: string;
@@ -112,4 +154,7 @@ export const api = {
   purgeBook: (id: number) => call<void>("purge_book", { id }),
   emptyTrash: () => call<number>("empty_trash"),
   listDictionary: (kind: Dictionary) => call<NamedCount[]>("list_dictionary", { kind }),
+  searchBooks: (query: SearchQuery) => call<SearchResult>("search_books", { query }),
+  libraryStats: () => call<Stats>("library_stats"),
+  distinctValues: (field: TextField) => call<string[]>("distinct_values", { field }),
 };

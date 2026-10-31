@@ -1,0 +1,98 @@
+.bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sort {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  height: 28px;
+  padding: 0 8px 0 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.trigger:active {
+  transform: scale(calc(1 - 0.03 * var(--motion)));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover {
+    border-color: var(--text-faint);
+    color: var(--text);
+  }
+}
+
+/* Con algo elegido el borde se vuelve sólido y el valor se ve. */
+.trigger[data-active="true"] {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.trigger[data-popup-open] .chevron {
+  transform: rotate(180deg);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: transform 160ms var(--ease-out);
+}
+
+.summary {
+  overflow: hidden;
+  color: var(--accent);
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.sort .trigger {
+  border-style: solid;
+  border-color: transparent;
+}
+
+.sort .trigger[data-active="true"] {
+  border-color: transparent;
+  background: transparent;
+}
+
+.sort .summary {
+  color: var(--text);
+}
+
+.text {
+  padding: 10px;
+}

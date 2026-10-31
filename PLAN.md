@@ -23,9 +23,10 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 
 - [x] Fase 0
 - [x] Fase 1
-- [x] Fase 2 (la búsqueda actual es provisional: título y autor; la fase 4 la sustituye)
+- [x] Fase 2
 - [x] Fase 3
-- [ ] Fase 4 · [ ] Fase 5 · [ ] Fase 6
+- [x] Fase 4 (5.000 libros: la búsqueda más pesada tarda 31 ms)
+- [ ] Fase 5 · [ ] Fase 6
 
 ## Fases
 

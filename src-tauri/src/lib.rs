@@ -6,6 +6,7 @@ mod models;
 mod normalize;
 mod paths;
 mod repo;
+mod search;
 mod validate;
 
 use std::fs;
@@ -44,6 +45,9 @@ pub fn run() {
             commands::list_dictionary,
             commands::set_cover,
             commands::remove_cover,
+            commands::search_books,
+            commands::library_stats,
+            commands::distinct_values,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

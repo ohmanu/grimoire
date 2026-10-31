@@ -1,4 +1,5 @@
 import { HandHelping, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { Book } from "../../lib/api";
 import { t } from "../../lib/strings";
 import { Button } from "../ui/Button";
@@ -23,7 +24,35 @@ interface BookListProps {
   };
 }
 
-export function BookList({ books, view, onOpen, trash }: BookListProps) {
+// Se pinta por tandas: con miles de libros, la primera tanda aparece al
+// instante y el resto se añade al acercarse al final de la lista.
+const BATCH = 120;
+
+function useProgressive<T>(items: T[]) {
+  const [limit, setLimit] = useState(BATCH);
+  const sentinel = useRef<HTMLLIElement>(null);
+
+  useEffect(() => setLimit(BATCH), [items]);
+
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting && setLimit((l) => l + BATCH),
+      // La raíz es el contenedor con scroll, para que el margen adelante la carga.
+      { root: el.closest("main"), rootMargin: "600px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [limit, items]);
+
+  const more = items.length > limit ? <li ref={sentinel} className={styles.sentinel} aria-hidden /> : null;
+  return { visible: items.slice(0, limit), more };
+}
+
+export function BookList({ books: all, view, onOpen, trash }: BookListProps) {
+  const { visible: books, more } = useProgressive(all);
+
   if (trash) {
     return (
       <ul className={styles.list}>
@@ -44,6 +73,7 @@ export function BookList({ books, view, onOpen, trash }: BookListProps) {
             </div>
           </li>
         ))}
+        {more}
       </ul>
     );
   }
@@ -62,6 +92,7 @@ export function BookList({ books, view, onOpen, trash }: BookListProps) {
             </button>
           </li>
         ))}
+        {more}
       </ul>
     );
   }
@@ -99,6 +130,7 @@ export function BookList({ books, view, onOpen, trash }: BookListProps) {
           </li>
         );
       })}
+      {more}
     </ul>
   );
 }

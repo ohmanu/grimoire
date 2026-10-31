@@ -8,7 +8,7 @@ use tauri::State;
 use crate::covers;
 use crate::error::AppResult;
 use crate::models::{Book, BookInput, Dictionary, NamedCount};
-use crate::repo;
+use crate::{repo, search};
 
 pub struct Db {
     conn: Mutex<Connection>,
@@ -105,6 +105,21 @@ pub async fn empty_trash(db: State<'_, Db>) -> AppResult<usize> {
     let (removed, covers) = repo::empty_trash(&mut db.lock())?;
     db.delete_covers(&covers);
     Ok(removed)
+}
+
+#[tauri::command]
+pub async fn search_books(db: State<'_, Db>, query: search::SearchQuery) -> AppResult<search::SearchResult> {
+    search::search(&db.lock(), &query)
+}
+
+#[tauri::command]
+pub async fn library_stats(db: State<'_, Db>) -> AppResult<search::Stats> {
+    search::stats(&db.lock())
+}
+
+#[tauri::command]
+pub async fn distinct_values(db: State<'_, Db>, field: search::TextField) -> AppResult<Vec<String>> {
+    search::distinct_values(&db.lock(), field)
 }
 
 #[tauri::command]

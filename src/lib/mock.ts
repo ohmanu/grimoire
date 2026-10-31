@@ -1,4 +1,4 @@
-import type { ApiError, Book, BookInput, NamedCount } from "./api";
+import type { ApiError, Book, BookInput, NamedCount, SearchQuery } from "./api";
 import { fold } from "./text";
 import { validateBook } from "./validate";
 
@@ -159,16 +159,85 @@ function canonical(names: string[], kind: "authors" | "sigils"): string[] {
     .map((n) => known.get(fold(n)) ?? n);
 }
 
-function dictionary(kind: string): NamedCount[] {
-  const counts = new Map<string, number>();
-  for (const b of books.filter((b) => !b.deletedAt)) {
-    const names =
-      kind === "sigils" ? b.sigils : kind === "authors" ? b.authors : [kind === "series" ? b.series : b.category];
-    for (const name of names) if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  return [...counts]
-    .map(([name, count], i) => ({ id: i + 1, name, count }))
+// Ids estables por nombre, como en la base de datos real.
+const registry = new Map<string, number>();
+const idOf = (kind: string, name: string) => {
+  const key = `${kind}:${fold(name)}`;
+  if (!registry.has(key)) registry.set(key, registry.size + 1);
+  return registry.get(key)!;
+};
+
+const namesOf = (b: Book, kind: string): string[] =>
+  (kind === "sigils" ? b.sigils : kind === "authors" ? b.authors : [kind === "series" ? b.series : b.category]).filter(
+    (n): n is string => !!n,
+  );
+
+// Se registran de entrada en orden fijo: así los ids no dependen de qué
+// petición llegue antes y sobreviven a una recarga (como en la app real).
+for (const kind of ["categories", "authors", "series", "sigils"])
+  for (const b of books) for (const n of namesOf(b, kind)) idOf(kind, n);
+
+function dictionary(kind: string, scope: Book[] = books.filter((b) => !b.deletedAt)): NamedCount[] {
+  const all = new Map<string, string>();
+  for (const b of books) for (const n of namesOf(b, kind)) all.set(fold(n), n);
+  return [...all.values()]
+    .map((name) => ({
+      id: idOf(kind, name),
+      name,
+      count: scope.filter((b) => namesOf(b, kind).some((n) => fold(n) === fold(name))).length,
+    }))
     .sort((a, b) => fold(a.name).localeCompare(fold(b.name)));
+}
+
+function search(q: SearchQuery) {
+  const has = (b: Book, kind: string, ids: number[]) => namesOf(b, kind).some((n) => ids.includes(idOf(kind, n)));
+  const words = fold(q.text).split(" ").filter(Boolean);
+  const base = books.filter((b) => {
+    if (b.deletedAt) return false;
+    if (words.length) {
+      const hay = fold([b.title, b.subtitle, ...b.authors, b.series, b.synopsis].join(" "));
+      const isbn = q.text.replace(/[^0-9xX]/g, "").toUpperCase();
+      if (!words.every((w) => hay.includes(w)) && !(isbn.length >= 4 && b.isbn?.includes(isbn))) return false;
+    }
+    if (q.statuses.length && !q.statuses.includes(b.status)) return false;
+    if (q.lent != null && !!b.lentTo !== q.lent) return false;
+    if (q.formats.length && !q.formats.includes(b.format)) return false;
+    if (q.categoryIds.length && !has(b, "categories", q.categoryIds)) return false;
+    if (q.authorIds.length && !has(b, "authors", q.authorIds)) return false;
+    if (q.seriesIds.length && !has(b, "series", q.seriesIds)) return false;
+    if (q.publishers.length && !q.publishers.some((p) => fold(p) === fold(b.publisher ?? ""))) return false;
+    if (q.languages.length && !q.languages.some((l) => fold(l) === fold(b.language ?? ""))) return false;
+    const out = (v: number | null, min: number | null, max: number | null) =>
+      (min != null && (v == null || v < min)) || (max != null && (v == null || v > max));
+    if (out(b.year, q.yearMin, q.yearMax) || out(b.pages, q.pagesMin, null) || out(b.pages, null, q.pagesMax)) return false;
+    if (out(b.rating, q.ratingMin, null)) return false;
+    if (q.location.trim() && !fold(b.location ?? "").includes(fold(q.location))) return false;
+    return true;
+  });
+  const sigilIds = [...new Set(q.sigilIds)];
+  const filtered = !sigilIds.length
+    ? base
+    : base.filter((b) => {
+        const mine = b.sigils.map((s) => idOf("sigils", s));
+        return q.sigilMode === "all" ? sigilIds.every((id) => mine.includes(id)) : sigilIds.some((id) => mine.includes(id));
+      });
+  const key = (b: Book): string | number | null =>
+    q.sort === "author"
+      ? (b.authors[0] ? fold(b.authors[0]) : null)
+      : q.sort === "year"
+        ? b.year
+        : q.sort === "added"
+          ? b.createdAt
+          : q.sort === "rating"
+            ? b.rating
+            : fold(b.title);
+  const sorted = [...filtered].sort((a, b) => {
+    const [ka, kb] = [key(a), key(b)];
+    if (ka == null || kb == null) return ka == null && kb == null ? 0 : ka == null ? 1 : -1;
+    const c = ka < kb ? -1 : ka > kb ? 1 : 0;
+    return (q.descending ? -c : c) || fold(a.title).localeCompare(fold(b.title));
+  });
+  return { books: sorted, sigils: dictionary("sigils", q.sigilMode === "all" ? filtered : base) };
 }
 
 export async function mockInvoke(command: string, args: Record<string, unknown> = {}): Promise<unknown> {
@@ -184,6 +253,25 @@ export async function mockInvoke(command: string, args: Record<string, unknown> 
       return books.filter((b) => b.deletedAt);
     case "list_dictionary":
       return dictionary(String(args.kind));
+    case "search_books":
+      return search(args.query as SearchQuery);
+    case "library_stats": {
+      const live = books.filter((b) => !b.deletedAt);
+      return {
+        all: live.length,
+        pendiente: live.filter((b) => b.status === "pendiente").length,
+        leyendo: live.filter((b) => b.status === "leyendo").length,
+        leido: live.filter((b) => b.status === "leido").length,
+        lent: live.filter((b) => b.lentTo).length,
+        trash: books.length - live.length,
+      };
+    }
+    case "distinct_values": {
+      const field = args.field === "language" ? "language" : "publisher";
+      const seen = new Map<string, string>();
+      for (const b of books) if (b[field] && !seen.has(fold(b[field]!))) seen.set(fold(b[field]!), b[field]!);
+      return [...seen.values()].sort((a, b) => fold(a).localeCompare(fold(b)));
+    }
     case "get_book":
       return books.find((b) => b.id === args.id) ?? fail("not_found", "No se ha encontrado el libro");
     case "create_book": {

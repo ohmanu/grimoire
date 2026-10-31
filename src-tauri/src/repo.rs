@@ -9,7 +9,7 @@ use crate::validate::sanitize;
 /// caracteres de control de los nombres, así que nunca aparece dentro de uno.
 const SEP: char = '\u{1f}';
 
-const SELECT_BOOK: &str = "
+pub(crate) const SELECT_BOOK: &str = "
     SELECT b.id, b.title, b.subtitle,
            (SELECT group_concat(a.name, char(31) ORDER BY ba.position)
               FROM book_authors ba JOIN authors a ON a.id = ba.author_id
@@ -29,7 +29,7 @@ fn split(list: Option<String>) -> Vec<String> {
     list.map(|s| s.split(SEP).map(str::to_owned).collect()).unwrap_or_default()
 }
 
-fn book_from_row(row: &Row) -> rusqlite::Result<Book> {
+pub(crate) fn book_from_row(row: &Row) -> rusqlite::Result<Book> {
     Ok(Book {
         id: row.get(0)?,
         title: row.get(1)?,
