@@ -1,35 +1,43 @@
 /*
- * Tokens de Grimoire. Papel cálido, tinta oscura y un único acento: el rojo
- * vino de Lea Monde. El acento se reserva para lo activo y lo principal.
+ * Tokens de Grimoire. Pergamino, tinta sepia y un único acento: el rojo vino
+ * de Lea Monde. Inspirado en las acuarelas de Vagrant Story: ocres, tierras y
+ * un verde azulado apagado, siempre muy por debajo del texto.
  */
 :root {
   color-scheme: light;
 
-  --bg: #f7f5f1;
-  --surface: #ffffff;
-  --surface-sunken: #efece6;
-  --surface-hover: #ebe7e0;
-  --border: #e3ded6;
-  --border-strong: #cfc8bd;
+  --bg: #f3ead6;
+  --surface: #fffaf0;
+  --surface-sunken: #ebe0c9;
+  --surface-hover: #e8dbc0;
+  --border: #dccdb0;
+  --border-strong: #c6b28c;
 
-  --text: #1d1a17;
-  --text-muted: #6f675e;
-  --text-faint: #a39a8f;
+  --text: #2b2118;
+  --text-muted: #6b5a48;
+  --text-faint: #9c876c;
 
   --accent: #8e1f33;
   --accent-hover: #7a1a2c;
-  --accent-soft: #f6e6e8;
+  --accent-soft: #f2dcd6;
   --accent-text: #ffffff;
 
   --danger: #b42318;
   --focus: #8e1f33;
 
-  --status-pendiente: #8a8178;
+  --status-pendiente: #8c7a64;
   --status-leyendo: #b7791f;
-  --status-leido: #2f7d4f;
+  --status-leido: #3f7d4f;
 
-  --shadow-popup: 0 1px 2px rgb(29 26 23 / 0.06), 0 12px 32px -8px rgb(29 26 23 / 0.18);
-  --backdrop: rgb(29 26 23 / 0.32);
+  --shadow-popup: 0 1px 2px rgb(43 33 24 / 0.08), 0 12px 32px -8px rgb(43 33 24 / 0.22);
+  --backdrop: rgb(43 33 24 / 0.34);
+
+  /* Pergamino: grano de papel y manchas de acuarela muy tenues (ocre arriba,
+     verde azulado abajo). Se generan; no hay imágenes. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .22 0 0 0 0 .1 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --wash: radial-gradient(120% 90% at 100% 0%, rgb(184 137 59 / 0.16), transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, rgb(95 127 120 / 0.12), transparent 60%);
+  --sidebar-tint: rgb(90 61 43 / 0.06);
 
   --font-ui: "Inter Variable", system-ui, sans-serif;
   --font-book: "Literata Variable", Georgia, serif;
@@ -51,30 +59,36 @@
   :root {
     color-scheme: dark;
 
-    --bg: #141210;
-    --surface: #1c1a17;
-    --surface-sunken: #110f0e;
-    --surface-hover: #26231f;
-    --border: #2c2925;
-    --border-strong: #3d3933;
+    /* Tinta parda en vez de negro. */
+    --bg: #1b1612;
+    --surface: #241d17;
+    --surface-sunken: #15110d;
+    --surface-hover: #2e251d;
+    --border: #3a2f25;
+    --border-strong: #4f4032;
 
-    --text: #ede9e3;
-    --text-muted: #a39b91;
-    --text-faint: #6c655d;
+    --text: #efe6d6;
+    --text-muted: #b3a28a;
+    --text-faint: #7d6c57;
 
     --accent: #d9667a;
     --accent-hover: #e27d8f;
-    --accent-soft: #3a1c22;
+    --accent-soft: #3d1f24;
     --accent-text: #1a0d10;
 
     --danger: #f07167;
     --focus: #d9667a;
 
-    --status-pendiente: #8f877e;
+    --status-pendiente: #9a8a74;
     --status-leyendo: #d9a441;
-    --status-leido: #5fb47f;
+    --status-leido: #6db383;
 
     --shadow-popup: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -8px rgb(0 0 0 / 0.6);
     --backdrop: rgb(0 0 0 / 0.5);
+
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .75 0 0 0 0 .5 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --wash: radial-gradient(120% 90% at 100% 0%, rgb(184 137 59 / 0.1), transparent 60%),
+      radial-gradient(90% 80% at 0% 100%, rgb(95 127 120 / 0.09), transparent 60%);
+    --sidebar-tint: rgb(0 0 0 / 0.22);
   }
 }

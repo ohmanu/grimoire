@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api, coverSrc, isApiError, type Book, type BookInput, type Format, type Status } from "../../lib/api";
+import { playSigilAdded } from "../../lib/sound";
 import { t } from "../../lib/strings";
 import {
   SYNOPSIS_MAX_CHARS,
@@ -408,6 +409,7 @@ export function BookForm({ open, book, suggestions, onClose, onSaved }: BookForm
             placeholder={t.sigilsPlaceholder}
             renderToken={(name) => <Sigil name={name} size="md" />}
             removeLabel={(n) => `Quitar el sigil ${n}`}
+            onAdd={playSigilAdded}
             commaCommits
             invalid={!!errorFor("sigils")}
           />,

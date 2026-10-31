@@ -33,6 +33,7 @@ import {
   type Filters,
   type Section,
 } from "./lib/filters";
+import { playBookCreated } from "./lib/sound";
 import { t } from "./lib/strings";
 import styles from "./App.module.css";
 
@@ -206,7 +207,10 @@ export default function App() {
     setForm((f) => ({ ...f, open: false }));
     await refresh();
     if (wasEditing) setDetail(book);
-    else toast.success(`«${book.title}» ${t.added}`);
+    else {
+      playBookCreated();
+      toast.success(`«${book.title}» ${t.added}`);
+    }
   };
 
   const handleTrash = async (book: Book) => {

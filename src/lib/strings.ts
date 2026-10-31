@@ -48,6 +48,7 @@ export const t = {
   exportJson: "Exportar a JSON…",
   exportCsv: "Exportar a CSV (Excel)…",
   manage: "Gestionar sigils y categorías…",
+  sounds: "Sonidos",
   exported: (n: number) => (n === 1 ? "Exportado 1 libro" : `Exportados ${n} libros`),
   importTitle: "Importación terminada",
   imported: (n: number) => (n === 1 ? "1 libro importado" : `${n} libros importados`),

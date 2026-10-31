@@ -49,6 +49,36 @@
   }
 }
 
+.switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  margin-left: auto;
+  border-radius: 99px;
+  background: var(--border-strong);
+  transition: background-color 150ms ease;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface);
+  transition: transform 180ms var(--ease-out);
+}
+
+.switch[data-on="true"] {
+  background: var(--accent);
+}
+
+.switch[data-on="true"]::after {
+  transform: translateX(calc(12px * var(--motion)));
+}
+
 .separator {
   margin: 4px 6px;
   border: 0;

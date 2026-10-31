@@ -206,6 +206,8 @@ interface TokenInputProps {
   commaCommits?: boolean;
   removeLabel: (name: string) => string;
   onBlur?: () => void;
+  /** Se llama al añadir un elemento nuevo (no al repetir uno que ya estaba). */
+  onAdd?: (name: string) => void;
 }
 
 /**
@@ -223,6 +225,7 @@ export function TokenInput({
   commaCommits,
   removeLabel,
   onBlur,
+  onAdd,
 }: TokenInputProps) {
   const listId = useId();
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -262,6 +265,7 @@ export function TokenInput({
     if (!latest.current.some((v) => fold(v) === fold(known))) {
       latest.current = [...latest.current, known];
       onChange(latest.current);
+      onAdd?.(known);
     }
     setText("");
     keys.setActive(-1);
