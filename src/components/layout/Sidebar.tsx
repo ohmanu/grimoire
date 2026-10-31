@@ -71,7 +71,7 @@ export function Sidebar(props: SidebarProps) {
       <section className={styles.sigils} aria-labelledby="sigils-heading" data-disabled={section === "trash"}>
         <div className={styles.sigilsHeader}>
           <h2 id="sigils-heading" className={styles.heading}>
-            <SigilsIcon size={20} />
+            <SigilsIcon size={20} className={styles.sigilsIcon} />
             {t.sigils}
           </h2>
           {selected.length > 0 && (

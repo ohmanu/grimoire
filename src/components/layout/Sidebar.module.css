@@ -49,6 +49,13 @@
 }
 
 
+/* Centrado con las mayúsculas de «SIGILS», no con su línea: las mayúsculas
+   quedan ~1,5 px por encima del centro de la línea. Píxel entero para que el
+   pixel art no se emborrone. */
+.sigilsIcon {
+  transform: translateY(-2px);
+}
+
 .nav {
   display: flex;
   flex-direction: column;
