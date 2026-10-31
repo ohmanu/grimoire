@@ -59,11 +59,7 @@ export function CoverPicker({ title, authors, current, change, onChange, error, 
           accept(e.dataTransfer.files[0]);
         }}
       >
-        {shown ? (
-          <img src={shown} alt="" className={styles.image} />
-        ) : (
-          <Cover book={{ title: title || " ", authors }} size="lg" />
-        )}
+        <Cover book={{ title: title || " ", authors }} size="lg" src={shown} />
         <span className={styles.overlay}>
           <ImagePlus size={18} />
           {shown ? "Cambiar portada" : "Arrastra una imagen o haz clic"}
