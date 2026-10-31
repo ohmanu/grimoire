@@ -1,4 +1,5 @@
 mod commands;
+mod covers;
 mod db;
 mod error;
 mod models;
@@ -22,7 +23,11 @@ pub fn run() {
             if let Err(err) = db::backup_if_changed(&conn, &data_dir.join(db::BACKUP_DIR), db::BACKUPS_KEPT) {
                 eprintln!("No se pudo hacer la copia de seguridad: {err}");
             }
-            app.manage(commands::Db::new(conn, data_dir));
+            let db = commands::Db::new(conn, data_dir);
+            // La interfaz solo puede leer archivos de la carpeta de portadas.
+            fs::create_dir_all(db.covers_dir())?;
+            app.asset_protocol_scope().allow_directory(db.covers_dir(), false)?;
+            app.manage(db);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -37,6 +42,8 @@ pub fn run() {
             commands::purge_book,
             commands::empty_trash,
             commands::list_dictionary,
+            commands::set_cover,
+            commands::remove_cover,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

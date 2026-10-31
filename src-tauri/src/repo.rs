@@ -190,30 +190,42 @@ pub fn restore_book(conn: &Connection, id: i64) -> AppResult<Book> {
 }
 
 /// Borra definitivamente un libro. Solo funciona con libros que ya están en
-/// la papelera, para que nunca se pierda nada de un solo paso.
-pub fn purge_book(conn: &mut Connection, id: i64) -> AppResult<()> {
-    let tx = conn.transaction()?;
-    tx.execute("DELETE FROM books_fts WHERE rowid = ?1", [id])?;
-    let changed = tx.execute("DELETE FROM books WHERE id = ?1 AND deleted_at IS NOT NULL", [id])?;
-    if changed == 0 {
-        return Err(AppError::NotFound("el libro en la papelera"));
-    }
-    prune_orphans(&tx)?;
-    tx.commit()?;
-    Ok(())
+/// la papelera, para que nunca se pierda nada de un solo paso. Devuelve los
+/// archivos de portada que han quedado sin libro, para borrarlos.
+pub fn purge_book(conn: &mut Connection, id: i64) -> AppResult<Vec<String>> {
+    purge(conn, "id = ?1 AND deleted_at IS NOT NULL", id)?.ok_or(AppError::NotFound("el libro en la papelera"))
 }
 
-/// Vacía la papelera. Devuelve cuántos libros se han borrado.
-pub fn empty_trash(conn: &mut Connection) -> AppResult<usize> {
+/// Vacía la papelera. Devuelve los archivos de portada que hay que borrar
+/// (su número no es el de libros: no todos tienen portada).
+pub fn empty_trash(conn: &mut Connection) -> AppResult<(usize, Vec<String>)> {
     let tx = conn.transaction()?;
     tx.execute(
         "DELETE FROM books_fts WHERE rowid IN (SELECT id FROM books WHERE deleted_at IS NOT NULL)",
         [],
     )?;
-    let removed = tx.execute("DELETE FROM books WHERE deleted_at IS NOT NULL", [])?;
+    let covers: Vec<Option<String>> = tx
+        .prepare("DELETE FROM books WHERE deleted_at IS NOT NULL RETURNING cover")?
+        .query_map([], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
     prune_orphans(&tx)?;
     tx.commit()?;
-    Ok(removed)
+    Ok((covers.len(), covers.into_iter().flatten().collect()))
+}
+
+fn purge(conn: &mut Connection, filter: &str, id: i64) -> AppResult<Option<Vec<String>>> {
+    let tx = conn.transaction()?;
+    tx.execute("DELETE FROM books_fts WHERE rowid = ?1", [id])?;
+    let covers: Vec<Option<String>> = tx
+        .prepare(&format!("DELETE FROM books WHERE {filter} RETURNING cover"))?
+        .query_map([id], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
+    if covers.is_empty() {
+        return Ok(None);
+    }
+    prune_orphans(&tx)?;
+    tx.commit()?;
+    Ok(Some(covers.into_iter().flatten().collect()))
 }
 
 /// Entradas de un diccionario con su número de libros, por nombre.
@@ -456,9 +468,10 @@ mod tests {
         other.title = "Otro".into();
         let b = create_book(&mut conn, other).unwrap();
         create_book(&mut conn, BookInput { title: "Se queda".into(), ..Default::default() }).unwrap();
+        conn.execute("UPDATE books SET cover = 'a.webp' WHERE id = ?1", [a.id]).unwrap();
         trash_book(&conn, a.id).unwrap();
         trash_book(&conn, b.id).unwrap();
-        assert_eq!(empty_trash(&mut conn).unwrap(), 2);
+        assert_eq!(empty_trash(&mut conn).unwrap(), (2, vec!["a.webp".to_string()]));
         assert_eq!(list_books(&conn).unwrap().len(), 1);
     }
 

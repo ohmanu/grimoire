@@ -1,0 +1,89 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.title input {
+  font-family: var(--font-book);
+  font-size: 16px;
+  font-weight: 550;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.seriesRow {
+  grid-template-columns: minmax(0, 1fr) 96px;
+}
+
+.editionRow {
+  grid-template-columns: minmax(0, 1.4fr) 88px 88px minmax(0, 1fr);
+}
+
+.statusRow {
+  grid-template-columns: auto auto 1fr;
+  gap: 20px;
+}
+
+.loanRow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.synopsis {
+  min-height: calc(5lh + 18px);
+}
+
+.counter [data-over="true"] {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  /* Aparece cuando se intenta cerrar con cambios: un aviso, no un susto. */
+  animation: confirm-in 180ms var(--ease-out);
+}
+
+.confirm span {
+  margin-right: auto;
+  color: var(--text);
+  font-weight: 500;
+}
+
+@keyframes confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(4px * var(--motion)));
+  }
+}

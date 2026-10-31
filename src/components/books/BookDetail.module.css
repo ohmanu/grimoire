@@ -1,0 +1,91 @@
+.detail {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  user-select: text;
+}
+
+.subtitle {
+  margin-top: -8px;
+  color: var(--text-muted);
+  font-family: var(--font-book);
+  font-style: italic;
+}
+
+.authors {
+  font-weight: 500;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.synopsis,
+.notes p {
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.synopsis {
+  font-family: var(--font-book);
+  font-size: 14.5px;
+}
+
+.sigils {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 4px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.meta dt {
+  color: var(--text-faint);
+  font-size: 11.5px;
+}
+
+.meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notes h3 {
+  margin-bottom: 4px;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.notes p {
+  color: var(--text-muted);
+}
+
+.trash {
+  margin-right: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trash:hover:not(:disabled) {
+    color: var(--danger);
+  }
+}

@@ -24,7 +24,8 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - [x] Fase 0
 - [x] Fase 1
 - [x] Fase 2 (la búsqueda actual es provisional: título y autor; la fase 4 la sustituye)
-- [ ] Fase 3 · [ ] Fase 4 · [ ] Fase 5 · [ ] Fase 6
+- [x] Fase 3
+- [ ] Fase 4 · [ ] Fase 5 · [ ] Fase 6
 
 ## Fases
 
@@ -62,6 +63,9 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - Sigils: se crean escribiendo y pulsando Enter.
 - Portada: arrastrar imagen o elegir archivo.
 - Borrado con "Deshacer" en un toast, y papelera.
+- Hecho además: ficha de solo lectura del libro; aviso al cerrar con cambios
+  sin guardar; `Ctrl+Enter` para guardar; las portadas se reducen a 600×900
+  WebP antes de guardarse en `covers/`, y se borran al purgar el libro.
 
 ### Fase 4 — Buscador
 - Texto libre en título, autor y sinopsis.

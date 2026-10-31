@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 // Tipos y llamadas al backend (src-tauri/src/commands.rs). Los nombres de los
 // campos coinciden con los de Rust en camelCase.
@@ -47,6 +47,7 @@ export interface NamedCount {
 export interface AppInfo {
   version: string;
   dataDir: string;
+  coversDir: string;
 }
 
 export interface FieldError {
@@ -81,8 +82,26 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
+let coversDir: string | null = null;
+
+/** URL de la portada de un libro, o null si no tiene. */
+export function coverSrc(book: Pick<Book, "cover">): string | null {
+  if (!book.cover) return null;
+  // El backend simulado guarda la imagen directamente como data URL.
+  if (book.cover.startsWith("data:")) return book.cover;
+  if (!coversDir) return null;
+  const sep = coversDir.includes("\\") ? "\\" : "/";
+  return convertFileSrc(`${coversDir}${sep}${book.cover}`);
+}
+
 export const api = {
-  appInfo: () => call<AppInfo>("app_info"),
+  appInfo: async () => {
+    const info = await call<AppInfo>("app_info");
+    coversDir = info.coversDir;
+    return info;
+  },
+  setCover: (id: number, data: string) => call<Book>("set_cover", { id, data }),
+  removeCover: (id: number) => call<Book>("remove_cover", { id }),
   listBooks: () => call<Book[]>("list_books"),
   getBook: (id: number) => call<Book>("get_book", { id }),
   createBook: (input: BookInput) => call<Book>("create_book", { input }),

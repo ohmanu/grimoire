@@ -1,0 +1,128 @@
+.field {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: text;
+  transition: border-color 150ms ease;
+}
+
+.field:focus-within {
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-soft);
+}
+
+.invalid {
+  border-color: var(--danger);
+}
+
+.tokens {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 6px;
+}
+
+.input {
+  flex: 1;
+  min-width: 80px;
+  height: 24px;
+  padding: 0 4px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.field:not(.tokens) .input {
+  padding: 0;
+}
+
+.input::placeholder {
+  color: var(--text-faint);
+}
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding-left: 8px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  font-size: 13px;
+}
+
+/* Si el elemento ya trae su propio chip (sigils), el contenedor no añade otro. */
+.token:has(> span:first-child[class]) {
+  padding-left: 0;
+  background: transparent;
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .remove:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+}
+
+.list {
+  position: fixed;
+  z-index: 10;
+  max-height: 248px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  list-style: none;
+  /* Sale del campo: escala desde su borde, rápido y sutil. */
+  transform-origin: top center;
+  animation: list-in 140ms var(--ease-out);
+}
+
+.list[data-side="top"] {
+  transform-origin: bottom center;
+}
+
+.option {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.option[aria-selected="true"] {
+  background: var(--surface-hover);
+}
+
+.create {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - 0.03 * var(--motion)));
+  }
+}

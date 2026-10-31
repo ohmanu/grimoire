@@ -34,7 +34,11 @@
   letter-spacing: -0.015em;
 }
 
-.heading span {
+.headingAction {
+  margin-left: auto;
+}
+
+.heading > span {
   color: var(--text-faint);
   font-size: 13px;
   font-variant-numeric: tabular-nums;

@@ -24,10 +24,13 @@
 }
 
 /* Los modales no tienen disparador al que anclarse: escalan desde el centro. */
+/* Cabecera y pie fijos; solo se desplaza el cuerpo. */
 .popup {
+  display: flex;
+  flex-direction: column;
   max-width: 100%;
   max-height: calc(100vh - 64px);
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -96,14 +99,22 @@
 }
 
 .body {
+  flex: 1;
+  min-height: 0;
   padding: 16px 20px;
+  overflow-y: auto;
 }
 
 .footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 20px 16px;
+}
+
+.body + .footer {
+  border-top: 1px solid var(--border);
 }
 
 .description + .footer {

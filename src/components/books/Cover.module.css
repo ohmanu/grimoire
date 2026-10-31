@@ -16,7 +16,8 @@
   border-radius: 2px 4px 4px 2px;
 }
 
-.lg {
+.lg,
+.md {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -24,6 +25,11 @@
   width: 100%;
   padding: 16px 12px 12px 18px;
   border-radius: 3px 6px 6px 3px;
+}
+
+.md {
+  width: 120px;
+  padding: 12px 10px 10px 14px;
 }
 
 .title {
@@ -46,4 +52,12 @@
   text-transform: uppercase;
   white-space: nowrap;
   opacity: 0.75;
+}
+
+/* Va al final: una imagen real no lleva el relleno ni el degradado del lomo. */
+.image {
+  display: block;
+  padding: 0;
+  object-fit: cover;
+  background: var(--surface-sunken);
 }

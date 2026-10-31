@@ -5,6 +5,7 @@ use rusqlite::Connection;
 use serde::Serialize;
 use tauri::State;
 
+use crate::covers;
 use crate::error::AppResult;
 use crate::models::{Book, BookInput, Dictionary, NamedCount};
 use crate::repo;
@@ -25,6 +26,16 @@ impl Db {
     fn lock(&self) -> MutexGuard<'_, Connection> {
         self.conn.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+
+    pub fn covers_dir(&self) -> PathBuf {
+        self.data_dir.join(covers::COVERS_DIR)
+    }
+
+    fn delete_covers(&self, names: &[String]) {
+        for name in names {
+            covers::delete_file(&self.covers_dir(), name);
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -32,6 +43,7 @@ impl Db {
 pub struct AppInfo {
     version: &'static str,
     data_dir: String,
+    covers_dir: String,
 }
 
 // Los comandos son `async` para que Tauri los ejecute fuera del hilo de la
@@ -39,7 +51,11 @@ pub struct AppInfo {
 
 #[tauri::command]
 pub async fn app_info(db: State<'_, Db>) -> AppResult<AppInfo> {
-    Ok(AppInfo { version: env!("CARGO_PKG_VERSION"), data_dir: db.data_dir.display().to_string() })
+    Ok(AppInfo {
+        version: env!("CARGO_PKG_VERSION"),
+        data_dir: db.data_dir.display().to_string(),
+        covers_dir: db.covers_dir().display().to_string(),
+    })
 }
 
 #[tauri::command]
@@ -79,12 +95,26 @@ pub async fn list_trash(db: State<'_, Db>) -> AppResult<Vec<Book>> {
 
 #[tauri::command]
 pub async fn purge_book(db: State<'_, Db>, id: i64) -> AppResult<()> {
-    repo::purge_book(&mut db.lock(), id)
+    let covers = repo::purge_book(&mut db.lock(), id)?;
+    db.delete_covers(&covers);
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn empty_trash(db: State<'_, Db>) -> AppResult<usize> {
-    repo::empty_trash(&mut db.lock())
+    let (removed, covers) = repo::empty_trash(&mut db.lock())?;
+    db.delete_covers(&covers);
+    Ok(removed)
+}
+
+#[tauri::command]
+pub async fn set_cover(db: State<'_, Db>, id: i64, data: String) -> AppResult<Book> {
+    covers::set_cover(&db.lock(), &db.covers_dir(), id, &data)
+}
+
+#[tauri::command]
+pub async fn remove_cover(db: State<'_, Db>, id: i64) -> AppResult<Book> {
+    covers::remove_cover(&db.lock(), &db.covers_dir(), id)
 }
 
 #[tauri::command]
