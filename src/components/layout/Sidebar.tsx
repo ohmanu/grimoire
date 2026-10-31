@@ -5,7 +5,7 @@ import type { Section } from "../../lib/filters";
 import { t } from "../../lib/strings";
 import { fold } from "../../lib/text";
 import { MagicCircle } from "../ui/MagicCircle";
-import { SigilMark } from "../ui/SigilMark";
+import logo from "../../assets/logo.png";
 import { Tooltip } from "../ui/Tooltip";
 import styles from "./Sidebar.module.css";
 
@@ -59,7 +59,7 @@ export function Sidebar(props: SidebarProps) {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <SigilMark size={22} />
+        <img src={logo} alt="" className={styles.logo} draggable={false} />
         <span>{t.appName}</span>
       </div>
 

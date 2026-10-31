@@ -27,6 +27,13 @@
   color: var(--text);
 }
 
+/* La cruz en pixel art (96 px) reducida: alta y estrecha, como el emblema. */
+.logo {
+  width: 40px;
+  height: 40px;
+  margin: 0 -8px 0 -10px;
+}
+
 .heading {
   display: flex;
   align-items: center;

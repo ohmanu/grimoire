@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Icono de Grimoire: el rombo de sigil (la misma marca que usa la app) sobre pergamino. -->
-  <rect x="61" y="61" width="902" height="902" rx="225" fill="#efe3c8"/>
-  <path d="M512 184 L840 512 L512 840 L184 512 Z" fill="#8e1f33"/>
-  <path d="M512 287 L737 512 L512 737 L287 512 Z" fill="none" stroke="#f6d9dd" stroke-width="26" stroke-linejoin="round"/>
-  <path d="M512 440 L584 512 L512 584 L440 512 Z" fill="#f6d9dd"/>
-</svg>
