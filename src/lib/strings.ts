@@ -42,7 +42,7 @@ export const t = {
   reload: "Recargar",
   startupTitle: "No se ha podido abrir la biblioteca",
   startupBody: (dir: string) =>
-    `Tus datos están en ${dir}. Si la base de datos está dañada, cierra Grimoire, sustituye grimoire.db por la copia más reciente de la carpeta backups (renombrándola a grimoire.db) y vuelve a abrir.`,
+    `Tus datos están en ${dir}. Si la base de datos está dañada, cierra Grimoire, abre la carpeta más reciente dentro de backups, copia su grimoire.db y su carpeta covers sobre las de ${dir} y vuelve a abrir.`,
   menu: "Biblioteca",
   importBooks: "Importar libros…",
   exportJson: "Exportar a JSON…",

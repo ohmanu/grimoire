@@ -77,9 +77,10 @@ pub fn revision(conn: &Connection) -> AppResult<i64> {
     Ok(conn.query_row("SELECT value FROM meta WHERE key = 'revision'", [], |row| row.get(0))?)
 }
 
-/// Copia la base de datos a `dir` si ha cambiado desde la última copia, y deja
-/// solo las `keep` más recientes. No copia una base de datos sin cambios nunca.
-pub fn backup_if_changed(conn: &Connection, dir: &Path, keep: usize) -> AppResult<Option<PathBuf>> {
+/// Copia la biblioteca a `dir` si ha cambiado desde la última copia, y deja
+/// solo las `keep` más recientes. Cada copia es una carpeta con
+/// `grimoire.db` y `covers/`, lista para restaurar copiándola sin más.
+pub fn backup_if_changed(conn: &Connection, dir: &Path, covers: &Path, keep: usize) -> AppResult<Option<PathBuf>> {
     let rev = revision(conn)?;
     if rev == 0 {
         return Ok(None);
@@ -92,10 +93,24 @@ pub fn backup_if_changed(conn: &Connection, dir: &Path, keep: usize) -> AppResul
 
     let stamp: String =
         conn.query_row("SELECT strftime('%Y%m%d-%H%M%S', 'now', 'localtime')", [], |row| row.get(0))?;
-    let target = dir.join(format!("grimoire-{stamp}-r{rev}.db"));
+    let name = format!("grimoire-{stamp}-r{rev}");
+    let target = dir.join(&name);
     if !target.exists() {
-        // VACUUM INTO crea una copia consistente y compacta, aunque haya WAL.
-        conn.execute("VACUUM INTO ?1", [target.to_string_lossy()])?;
+        // Se prepara aparte y se renombra al final: una copia está completa o no está.
+        let tmp = dir.join(format!(".{name}.tmp"));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp)?;
+        let result = (|| -> AppResult<()> {
+            // VACUUM INTO crea una copia consistente y compacta, aunque haya WAL.
+            conn.execute("VACUUM INTO ?1", [tmp.join(DB_FILE).to_string_lossy()])?;
+            link_covers(covers, &tmp.join("covers"))?;
+            fs::rename(&tmp, &target)?;
+            Ok(())
+        })();
+        if let Err(err) = result {
+            let _ = fs::remove_dir_all(&tmp);
+            return Err(err);
+        }
         backups.push(target.clone());
     }
 
@@ -103,19 +118,42 @@ pub fn backup_if_changed(conn: &Connection, dir: &Path, keep: usize) -> AppResul
     let excess = backups.len().saturating_sub(keep);
     for old in backups.drain(..excess) {
         // Si una copia antigua no se puede borrar, se reintenta en el próximo arranque.
-        let _ = fs::remove_file(old);
+        let _ = if old.is_dir() { fs::remove_dir_all(old) } else { fs::remove_file(old) };
     }
     Ok(Some(target))
 }
 
+/// Las portadas nunca se modifican (cada cambio crea un archivo nuevo), así
+/// que basta un enlace duro: no ocupa espacio y sobrevive aunque el original
+/// se borre. Si el sistema no lo permite, se copia.
+fn link_covers(from: &Path, to: &Path) -> AppResult<()> {
+    fs::create_dir_all(to)?;
+    if !from.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(from)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if !entry.file_type()?.is_file() || name.to_string_lossy().ends_with(".tmp") {
+            continue;
+        }
+        let dest = to.join(&name);
+        if fs::hard_link(entry.path(), &dest).is_err() {
+            fs::copy(entry.path(), &dest)?;
+        }
+    }
+    Ok(())
+}
+
 /// Copias existentes, de la más antigua a la más reciente (el nombre empieza
-/// por la fecha, así que el orden alfabético es el cronológico).
+/// por la fecha, así que el orden alfabético es el cronológico). Incluye las
+/// del formato antiguo (un solo archivo .db).
 pub fn list_backups(dir: &Path) -> AppResult<Vec<PathBuf>> {
     let mut found = Vec::new();
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-        if name.starts_with("grimoire-") && name.ends_with(".db") {
+        if name.starts_with("grimoire-") && (path.is_dir() || name.ends_with(".db")) {
             found.push(path);
         }
     }
@@ -124,8 +162,8 @@ pub fn list_backups(dir: &Path) -> AppResult<Vec<PathBuf>> {
 }
 
 fn backup_revision(path: &Path) -> Option<i64> {
-    let stem = path.file_stem()?.to_str()?;
-    stem.rsplit_once("-r")?.1.parse().ok()
+    let name = path.file_name()?.to_str()?;
+    name.trim_end_matches(".db").rsplit_once("-r")?.1.parse().ok()
 }
 
 #[cfg(test)]
@@ -180,31 +218,56 @@ mod tests {
     fn backup_skips_unchanged_and_rotates() {
         let dir = tempfile::tempdir().unwrap();
         let backups = dir.path().join(BACKUP_DIR);
+        let covers = dir.path().join("covers");
         let conn = open(&dir.path().join(DB_FILE)).unwrap();
 
         // Base de datos recién creada: nada que copiar.
-        assert!(backup_if_changed(&conn, &backups, 3).unwrap().is_none());
+        assert!(backup_if_changed(&conn, &backups, &covers, 3).unwrap().is_none());
 
         bump(&conn);
-        let first = backup_if_changed(&conn, &backups, 3).unwrap().unwrap();
-        assert!(first.exists());
+        let first = backup_if_changed(&conn, &backups, &covers, 3).unwrap().unwrap();
+        assert!(first.join(DB_FILE).exists());
         // Sin cambios: no se repite la copia.
-        assert!(backup_if_changed(&conn, &backups, 3).unwrap().is_none());
+        assert!(backup_if_changed(&conn, &backups, &covers, 3).unwrap().is_none());
 
-        // Copias antiguas simuladas para comprobar la rotación.
-        for i in 1..=4 {
+        // Copias antiguas simuladas (del formato antiguo y del nuevo) para la rotación.
+        for i in 1..=2 {
             fs::write(backups.join(format!("grimoire-20000101-00000{i}-r{i}.db")), b"old").unwrap();
         }
+        for i in 3..=4 {
+            fs::create_dir_all(backups.join(format!("grimoire-20000101-00000{i}-r{i}")).join("covers")).unwrap();
+        }
         bump(&conn);
-        let latest = backup_if_changed(&conn, &backups, 3).unwrap().unwrap();
+        let latest = backup_if_changed(&conn, &backups, &covers, 3).unwrap().unwrap();
         let kept = list_backups(&backups).unwrap();
         assert_eq!(kept.len(), 3);
         assert_eq!(kept.last(), Some(&latest));
         assert!(kept.contains(&first));
 
         // La copia es una base de datos válida con los datos.
-        let copy = Connection::open(&latest).unwrap();
+        let copy = Connection::open(latest.join(DB_FILE)).unwrap();
         let count: i64 = copy.query_row("SELECT count(*) FROM sigils", [], |r| r.get(0)).unwrap();
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn backup_keeps_covers_even_after_the_original_is_deleted() {
+        let dir = tempfile::tempdir().unwrap();
+        let backups = dir.path().join(BACKUP_DIR);
+        let covers = dir.path().join("covers");
+        fs::create_dir_all(&covers).unwrap();
+        fs::write(covers.join("1-1.webp"), b"portada").unwrap();
+        fs::write(covers.join("2-2.webp.tmp"), b"a medias").unwrap();
+        let conn = open(&dir.path().join(DB_FILE)).unwrap();
+        bump(&conn);
+
+        let backup = backup_if_changed(&conn, &backups, &covers, 3).unwrap().unwrap();
+        fs::remove_file(covers.join("1-1.webp")).unwrap();
+        assert_eq!(fs::read(backup.join("covers").join("1-1.webp")).unwrap(), b"portada");
+        assert!(!backup.join("covers").join("2-2.webp.tmp").exists(), "los temporales no se copian");
+        // No quedan carpetas temporales.
+        let names: Vec<String> =
+            fs::read_dir(&backups).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        assert!(names.iter().all(|n| n.starts_with("grimoire-")), "{names:?}");
     }
 }

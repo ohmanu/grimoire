@@ -302,6 +302,7 @@ export default function App() {
       <EmptyState
         title={t.noResultsTitle}
         body={t.noResultsBody}
+        animate={false}
         action={
           filtering && (
             <Button

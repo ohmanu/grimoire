@@ -27,7 +27,7 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - [x] Fase 3
 - [x] Fase 4 (5.000 libros: la búsqueda más pesada tarda 31 ms)
 - [x] Fase 5
-- [ ] Fase 6
+- [x] Fase 6 — `npm run portable` → `release/Grimoire/Grimoire.exe` (11 MB)
 
 ## Fases
 
@@ -89,9 +89,13 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
   detalla fila a fila lo que no entra. Si la base de datos no abre, la app
   arranca igual y explica cómo restaurar una copia; si la interfaz falla, se
   ofrece recargar en vez de quedarse en blanco.
-- Pendiente para la fase 6: las copias de `backups/` no incluyen las portadas.
+- Las copias de `backups/` incluyen las portadas (fase 6).
 
 ### Fase 6 — Empaquetado y pruebas finales
 - `.exe` portable con icono.
 - Prueba con 5.000 libros: búsquedas < 50 ms.
 - Revisión final de UI con la skill de Emil (tabla antes/después).
+- Hecho: probado el `.exe` real (vía el puerto de depuración de WebView2):
+  importar 5.000 libros 0,9 s; listar los 5.000 56 ms de extremo a extremo;
+  texto, sigils y filtros 3–9 ms. Copias de seguridad como carpeta con
+  `grimoire.db` + `covers/` (enlaces duros: sin espacio extra). Icono propio.

@@ -23,7 +23,8 @@ fn open_library(data_dir: &Path) -> AppResult<Connection> {
     fs::create_dir_all(data_dir)?;
     let conn = db::open(&data_dir.join(db::DB_FILE))?;
     // Una copia fallida no debe impedir usar la app: se avisa y se sigue.
-    if let Err(err) = db::backup_if_changed(&conn, &data_dir.join(db::BACKUP_DIR), db::BACKUPS_KEPT) {
+    let backups = data_dir.join(db::BACKUP_DIR);
+    if let Err(err) = db::backup_if_changed(&conn, &backups, &data_dir.join(covers::COVERS_DIR), db::BACKUPS_KEPT) {
         eprintln!("No se pudo hacer la copia de seguridad: {err}");
     }
     Ok(conn)

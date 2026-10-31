@@ -26,15 +26,17 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <EmptyState
-        title={t.crashTitle}
-        body={`${t.crashBody} (${this.state.error.message})`}
-        action={
-          <Button variant="primary" onClick={() => window.location.reload()}>
-            {t.reload}
-          </Button>
-        }
-      />
+      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <EmptyState
+          title={t.crashTitle}
+          body={`${t.crashBody} (${this.state.error.message})`}
+          action={
+            <Button variant="primary" onClick={() => window.location.reload()}>
+              {t.reload}
+            </Button>
+          }
+        />
+      </div>
     );
   }
 }

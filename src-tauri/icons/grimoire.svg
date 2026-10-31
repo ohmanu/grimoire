@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Icono de Grimoire: el círculo mágico de los puntos de guardado sobre rojo vino. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a3263c"/>
+      <stop offset="1" stop-color="#6e1626"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#bg)"/>
+  <g fill="none" stroke="#f7efe2" stroke-linejoin="round" transform="translate(512 512)">
+    <circle r="330" stroke-width="22"/>
+    <circle r="240" stroke-width="18"/>
+    <rect x="-158" y="-158" width="316" height="316" stroke-width="18"/>
+    <rect x="-158" y="-158" width="316" height="316" stroke-width="18" transform="rotate(45)"/>
+    <g stroke-width="14">
+      <line y1="-330" y2="-288" transform="rotate(0)"/>
+      <line y1="-330" y2="-288" transform="rotate(22.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(45)"/>
+      <line y1="-330" y2="-288" transform="rotate(67.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(90)"/>
+      <line y1="-330" y2="-288" transform="rotate(112.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(135)"/>
+      <line y1="-330" y2="-288" transform="rotate(157.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(180)"/>
+      <line y1="-330" y2="-288" transform="rotate(202.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(225)"/>
+      <line y1="-330" y2="-288" transform="rotate(247.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(270)"/>
+      <line y1="-330" y2="-288" transform="rotate(292.5)"/>
+      <line y1="-330" y2="-288" transform="rotate(315)"/>
+      <line y1="-330" y2="-288" transform="rotate(337.5)"/>
+    </g>
+    <circle r="42" fill="#f7efe2" stroke="none"/>
+  </g>
+</svg>

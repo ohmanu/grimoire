@@ -25,6 +25,7 @@ dist-ssr
 
 # Datos locales de la app
 data/
+release/
 *.db
 *.db-wal
 *.db-shm
