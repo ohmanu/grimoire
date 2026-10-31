@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 # Datos locales de la app
+data/
 *.db
 *.db-wal
 *.db-shm

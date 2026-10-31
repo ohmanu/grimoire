@@ -22,3 +22,8 @@
   color: #737373;
   font-size: 0.875rem;
 }
+
+.shell .path {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}

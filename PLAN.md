@@ -13,10 +13,17 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - **Stack:** Tauri 2 + React + TypeScript + SQLite (`rusqlite`, FTS5).
   Validación en el backend (Rust), cada guardado en una transacción.
 
-## Pendiente de confirmar
+- **Campos extra:** serie + número en la serie; "prestado a…" + fecha de préstamo.
+- **Idioma:** solo castellano.
+- **Datos:** en desarrollo, `data/` en la raíz del proyecto; en la app final,
+  junto al `.exe` (o en la carpeta de datos de usuario si ahí no se puede
+  escribir). `GRIMOIRE_DATA_DIR` lo fuerza.
 
-- Campos extra: ¿"prestado a…"? ¿serie + número?
-- Idioma de la interfaz: solo castellano o también inglés.
+## Estado
+
+- [x] Fase 0
+- [x] Fase 1
+- [ ] Fase 2 · [ ] Fase 3 · [ ] Fase 4 · [ ] Fase 5 · [ ] Fase 6
 
 ## Fases
 
@@ -33,9 +40,13 @@ carpeta con una base de datos local (`grimoire.db` junto al ejecutable).
 - `authors` + `book_authors` (varios autores por libro, con orden).
 - `categories`, `sigils` + `book_sigils`.
 - Reglas: sinopsis ≤ 5 líneas y ≤ 600 caracteres; ISBN validado; sigils únicos
-  sin distinguir mayúsculas ni acentos.
+  sin distinguir mayúsculas ni acentos (la ñ sí cuenta).
 - Tests de todo lo anterior.
-- Copia de seguridad automática al abrir (se guardan las 10 últimas).
+- Copia de seguridad automática al abrir (se guardan las 10 últimas), solo si
+  hubo cambios desde la anterior.
+- Hecho además: papelera (borrar → papelera → purgar), índice FTS5 listo para
+  la fase 4, comprobación de integridad al abrir, y negativa a abrir una base
+  de datos de una versión más nueva de la app.
 
 ### Fase 2 — Interfaz base y sistema de diseño
 - Tokens de color y tipografía; curvas propias

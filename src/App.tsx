@@ -1,20 +1,34 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { api, type AppInfo } from "./lib/api";
 import "./App.css";
 
+// Pantalla provisional hasta la fase 2: confirma que el backend y la base de
+// datos responden.
 export default function App() {
-  const [version, setVersion] = useState<string | null>(null);
+  const [info, setInfo] = useState<AppInfo | null>(null);
+  const [books, setBooks] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    invoke<string>("app_version")
-      .then(setVersion)
-      .catch(() => setVersion(null));
+    Promise.all([api.appInfo(), api.listBooks()])
+      .then(([appInfo, list]) => {
+        setInfo(appInfo);
+        setBooks(list.length);
+      })
+      .catch((err) => setError(err.message));
   }, []);
 
   return (
     <main className="shell">
       <h1>Grimoire</h1>
-      <p>{version ? `v${version}` : "…"}</p>
+      {error ? (
+        <p>{error}</p>
+      ) : (
+        <>
+          <p>{info ? `v${info.version} · ${books} libros` : "…"}</p>
+          {info && <p className="path">{info.dataDir}</p>}
+        </>
+      )}
     </main>
   );
 }

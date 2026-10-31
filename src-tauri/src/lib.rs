@@ -1,22 +1,43 @@
-#[tauri::command]
-fn app_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
+mod commands;
+mod db;
+mod error;
+mod models;
+mod normalize;
+mod paths;
+mod repo;
+mod validate;
+
+use std::fs;
+
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![app_version])
+        .setup(|app| {
+            let data_dir = paths::data_dir(app.path().app_data_dir().ok());
+            fs::create_dir_all(&data_dir)?;
+            let conn = db::open(&data_dir.join(db::DB_FILE))?;
+            // Una copia fallida no debe impedir usar la app: se avisa y se sigue.
+            if let Err(err) = db::backup_if_changed(&conn, &data_dir.join(db::BACKUP_DIR), db::BACKUPS_KEPT) {
+                eprintln!("No se pudo hacer la copia de seguridad: {err}");
+            }
+            app.manage(commands::Db::new(conn, data_dir));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::app_info,
+            commands::list_books,
+            commands::get_book,
+            commands::create_book,
+            commands::update_book,
+            commands::trash_book,
+            commands::restore_book,
+            commands::list_trash,
+            commands::purge_book,
+            commands::empty_trash,
+            commands::list_dictionary,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn version_matches_manifest() {
-        assert_eq!(app_version(), env!("CARGO_PKG_VERSION"));
-    }
 }
