@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MagicCircle } from "../ui/MagicCircle";
+import { RoodEmblem } from "../ui/RoodEmblem";
 import styles from "./EmptyState.module.css";
 
 interface EmptyStateProps {
@@ -13,7 +13,7 @@ interface EmptyStateProps {
 export function EmptyState({ title, body, action, animate = true }: EmptyStateProps) {
   return (
     <div className={`${styles.empty} ${animate ? styles.animated : ""}`}>
-      <MagicCircle size={72} className={styles.circle} />
+      <RoodEmblem size={88} className={styles.circle} />
       <h2 className={styles.title}>{title}</h2>
       <p className={styles.body}>{body}</p>
       {action}

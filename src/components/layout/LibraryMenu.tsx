@@ -1,8 +1,9 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
-import { FileJson, FileSpreadsheet, MoreHorizontal, Tags, Upload, Volume2, VolumeX } from "lucide-react";
+import { FileJson, FileSpreadsheet, MoreHorizontal, Upload, Volume2, VolumeX } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { playSigilAdded, setSoundEnabled, soundEnabled } from "../../lib/sound";
 import { t } from "../../lib/strings";
+import { SigilsIcon } from "../ui/SigilsIcon";
 import { Button } from "../ui/Button";
 import styles from "./LibraryMenu.module.css";
 
@@ -44,7 +45,7 @@ export function LibraryMenu({ version, dataDir, onImport, onExport, onManage }: 
             {item(<FileJson />, t.exportJson, () => onExport("json"))}
             {item(<FileSpreadsheet />, t.exportCsv, () => onExport("csv"))}
             <hr className={styles.separator} />
-            {item(<Tags />, t.manage, onManage)}
+            {item(<SigilsIcon size={16} />, t.manage, onManage)}
             <button
               type="button"
               role="switch"

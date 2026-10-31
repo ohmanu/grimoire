@@ -4,7 +4,7 @@ import type { NamedCount, SigilMode, Stats } from "../../lib/api";
 import type { Section } from "../../lib/filters";
 import { t } from "../../lib/strings";
 import { fold } from "../../lib/text";
-import { MagicCircle } from "../ui/MagicCircle";
+import { SigilsIcon } from "../ui/SigilsIcon";
 import logo from "../../assets/logo.png";
 import { Tooltip } from "../ui/Tooltip";
 import styles from "./Sidebar.module.css";
@@ -71,7 +71,7 @@ export function Sidebar(props: SidebarProps) {
       <section className={styles.sigils} aria-labelledby="sigils-heading" data-disabled={section === "trash"}>
         <div className={styles.sigilsHeader}>
           <h2 id="sigils-heading" className={styles.heading}>
-            <MagicCircle size={14} className={styles.circle} />
+            <SigilsIcon size={20} />
             {t.sigils}
           </h2>
           {selected.length > 0 && (

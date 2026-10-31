@@ -48,9 +48,6 @@
   text-transform: uppercase;
 }
 
-.circle {
-  color: var(--accent);
-}
 
 .nav {
   display: flex;
